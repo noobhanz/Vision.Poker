@@ -1,0 +1,3 @@
+# Placeholder for card template images
+# Add PNG templates named {rank}{suit}.png (e.g., Ah.png for Ace of hearts)
+# Templates are used as fallback when YOLO model is not available

@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Poker - Real-Time Poker HUD for Mac</title>
+    <meta name="description" content="Make better poker decisions instantly. Vision shows you equity, pot odds, and EV in real-time as you play.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --bg-subtle: #0f0f12;
+            --bg-card: #141418;
+            --accent: #00c853;
+            --accent-hover: #00e676;
+            --text: #fafafa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --max-width: 1100px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Nav */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .logo span { color: var(--accent); }
+
+        .nav-cta {
+            background: var(--accent);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .nav-cta:hover { background: var(--accent-hover); }
+
+        /* Hero */
+        .hero {
+            padding: 160px 24px 80px;
+            text-align: center;
+        }
+
+        .hero-inner {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+        }
+
+        .badge strong { color: var(--accent); font-weight: 600; }
+
+        h1 {
+            font-size: clamp(40px, 5vw, 64px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent) 0%, #00e676 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 480px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            max-width: 600px;
+            margin: 64px auto 0;
+            padding-top: 64px;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat { text-align: center; }
+        .stat-value { font-size: 32px; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+        /* HUD Demo */
+        .demo {
+            padding: 80px 24px;
+        }
+
+        .demo-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hud-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .hud {
+            background: rgba(9, 9, 11, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            width: 260px;
+            font-size: 13px;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .hud-logo { font-weight: 700; font-size: 12px; letter-spacing: 0.05em; }
+        .hud-logo span { color: var(--accent); }
+        .hud-live { font-size: 11px; color: var(--accent); font-weight: 500; }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+
+        .hud-label { color: var(--text-muted); }
+        .hud-value { font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .hud-value.green { color: var(--accent); }
+        .hud-value.blue { color: #3b82f6; }
+
+        .hud-divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+        .hud-action {
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        /* Features */
+        .features {
+            padding: 80px 24px;
+            background: var(--bg-subtle);
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto 56px;
+        }
+
+        .section-header h2 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .section-header p { color: var(--text-muted); }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .feature {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            transition: border-color 0.2s;
+        }
+
+        .feature:hover { border-color: var(--accent); }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #00e676);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .feature h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .feature p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+        /* How it works */
+        .how {
+            padding: 80px 24px;
+        }
+
+        .steps {
+            max-width: 640px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .step {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #000;
+            flex-shrink: 0;
+        }
+
+        .step h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+        .step p { color: var(--text-muted); font-size: 15px; }
+
+        /* Pricing */
+        .pricing {
+            padding: 80px 24px;
+            background: var(--bg-subtle);
+        }
+
+        .pricing-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .toggle-label { color: var(--text-muted); font-size: 14px; cursor: pointer; }
+        .toggle-label.active { color: var(--text); }
+        .toggle-label .save { color: var(--accent); font-weight: 500; }
+
+        .toggle {
+            width: 52px;
+            height: 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            top: 3px;
+            left: 4px;
+            transition: transform 0.2s;
+        }
+
+        .toggle.yearly::after { transform: translateX(24px); }
+
+        .pricing-card {
+            max-width: 400px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .pricing-card h3 { font-size: 20px; margin-bottom: 24px; }
+
+        .price { margin-bottom: 8px; }
+        .price-amount { font-size: 56px; font-weight: 800; letter-spacing: -0.03em; }
+        .price-period { color: var(--text-muted); }
+
+        .price-note { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+
+        .pricing-features {
+            text-align: left;
+            margin-bottom: 32px;
+        }
+
+        .pricing-features li {
+            list-style: none;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .check { color: var(--accent); font-weight: 600; }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 80px 24px;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .testimonial {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+        }
+
+        .testimonial-text { font-size: 15px; line-height: 1.7; margin-bottom: 20px; }
+
+        .testimonial-author { display: flex; align-items: center; gap: 12px; }
+
+        .author-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #000;
+            font-size: 14px;
+        }
+
+        .author-name { font-weight: 600; font-size: 14px; }
+        .author-title { color: var(--text-muted); font-size: 13px; }
+
+        /* FAQ */
+        .faq {
+            padding: 80px 24px;
+            background: var(--bg-subtle);
+        }
+
+        .faq-list {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            padding: 20px 0;
+        }
+
+        .faq-q {
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-q::after { content: '+'; font-size: 20px; color: var(--accent); }
+        .faq-item.open .faq-q::after { content: '-'; }
+
+        .faq-a {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.7;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .faq-item.open .faq-a { display: block; }
+
+        /* CTA */
+        .cta {
+            padding: 100px 24px;
+            text-align: center;
+        }
+
+        .cta h2 { font-size: 36px; font-weight: 700; margin-bottom: 16px; }
+        .cta p { color: var(--text-muted); margin-bottom: 32px; }
+
+        /* Footer */
+        footer {
+            padding: 40px 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; }
+        .footer-links a:hover { color: var(--text); }
+
+        .copyright { color: var(--text-muted); font-size: 13px; }
+
+        @media (max-width: 640px) {
+            .stats { grid-template-columns: 1fr; gap: 24px; }
+            .step { flex-direction: column; text-align: center; }
+            .step-num { margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-inner">
+            <a href="#" class="logo"><span>vision</span>.poker</a>
+            <a href="#pricing" class="nav-cta">Get Started</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="badge">Trusted by <strong>2,500+</strong> poker players</div>
+            <h1>Stop Guessing.<br><span class="gradient-text">Start Winning.</span></h1>
+            <p>Real-time equity, pot odds, and EV calculations displayed as a transparent overlay while you play.</p>
+            <div class="hero-buttons">
+                <a href="#pricing" class="btn btn-primary">Start Free Trial</a>
+                <a href="#demo" class="btn btn-ghost">See Demo</a>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">67%</div>
+                    <div class="stat-label">Better decisions</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">2.3x</div>
+                    <div class="stat-label">Faster learning</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">$847</div>
+                    <div class="stat-label">Avg. monthly gain</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="demo" id="demo">
+        <div class="demo-inner">
+            <div class="hud-container">
+                <div class="hud">
+                    <div class="hud-header">
+                        <span class="hud-logo"><span>VISION</span>.POKER</span>
+                        <span class="hud-live">LIVE</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="hud-label">Equity</span>
+                        <span class="hud-value green">67.3%</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="hud-label">Pot Odds</span>
+                        <span class="hud-value">28.1%</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="hud-label">Required Eq</span>
+                        <span class="hud-value">28.1%</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="hud-label">EV (call)</span>
+                        <span class="hud-value green">+$42.50</span>
+                    </div>
+                    <div class="hud-divider"></div>
+                    <div class="hud-row">
+                        <span class="hud-label">Outs: 9</span>
+                        <span class="hud-value blue">Flush Draw</span>
+                    </div>
+                    <div class="hud-action">CALL — equity exceeds required</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Everything you need to win</h2>
+                <p>Professional poker math, simplified into an intuitive overlay.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">%</div>
+                    <h3>Real-Time Equity</h3>
+                    <p>Know your exact win probability against any range, updated instantly as cards are dealt.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">EV</div>
+                    <h3>Pot Odds & EV</h3>
+                    <p>See if every call is profitable. Never make a -EV decision again.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">9</div>
+                    <h3>Draw Detection</h3>
+                    <p>Automatically identifies flush draws, straights, and combo draws with accurate outs.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">+/-</div>
+                    <h3>Clear Recommendations</h3>
+                    <p>FOLD, CALL, or RAISE suggestions based on pure mathematics.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">///</div>
+                    <h3>Invisible to Others</h3>
+                    <p>Transparent overlay on your screen only. No one else can see it.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">ms</div>
+                    <h3>Zero Lag</h3>
+                    <p>Updates in under 300ms. The math is ready before you are.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how" id="how">
+        <div class="container">
+            <div class="section-header">
+                <h2>Ready in 60 seconds</h2>
+                <p>No complex setup. Just install and play.</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div>
+                        <h3>Download & Install</h3>
+                        <p>One-click installer. Works on Mac with Windows coming soon.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div>
+                        <h3>Open Your Poker Client</h3>
+                        <p>Works with PokerStars, GGPoker, and all major platforms.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div>
+                        <h3>Play Smarter</h3>
+                        <p>The HUD appears automatically. Press F9 to toggle visibility.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simple pricing</h2>
+                <p>One plan with everything included. Cancel anytime.</p>
+            </div>
+            <div class="pricing-toggle">
+                <span class="toggle-label active" id="monthly-label">Monthly</span>
+                <div class="toggle" id="billing-toggle"></div>
+                <span class="toggle-label" id="yearly-label">Yearly <span class="save">(2 months free)</span></span>
+            </div>
+            <div class="pricing-card">
+                <h3>Vision Pro</h3>
+                <div class="price">
+                    <span class="price-amount" id="price-amount">$36</span>
+                    <span class="price-period" id="price-period">/month</span>
+                </div>
+                <p class="price-note" id="price-note">Billed monthly. Cancel anytime.</p>
+                <ul class="pricing-features">
+                    <li><span class="check">✓</span> Real-time equity calculator</li>
+                    <li><span class="check">✓</span> Pot odds & EV display</li>
+                    <li><span class="check">✓</span> Draw detection & outs</li>
+                    <li><span class="check">✓</span> Action recommendations</li>
+                    <li><span class="check">✓</span> All poker clients supported</li>
+                    <li><span class="check">✓</span> Unlimited tables</li>
+                </ul>
+                <a href="#" class="btn btn-primary" style="width: 100%;">Start 7-Day Free Trial</a>
+            </div>
+            <p style="text-align: center; margin-top: 24px; color: var(--text-muted); font-size: 13px;">
+                No credit card required &nbsp;·&nbsp; Secure payment via Stripe
+            </p>
+        </div>
+    </section>
+
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2>What players are saying</h2>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial">
+                    <p class="testimonial-text">"I went from losing player to consistent winner in 2 months. Seeing the EV of every decision changed how I think about poker."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">MK</div>
+                        <div>
+                            <div class="author-name">Mike K.</div>
+                            <div class="author-title">NL50 Regular</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial">
+                    <p class="testimonial-text">"Best $36 I spend each month. Paid for itself in the first session. The pot odds display alone is worth it."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">SL</div>
+                        <div>
+                            <div class="author-name">Sarah L.</div>
+                            <div class="author-title">Tournament Player</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial">
+                    <p class="testimonial-text">"Finally, a HUD that helps you learn. I used to guess at pot odds. Now I know instantly if a call is +EV."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">JT</div>
+                        <div>
+                            <div class="author-name">James T.</div>
+                            <div class="author-title">Cash Game Player</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq">
+        <div class="container">
+            <div class="section-header">
+                <h2>Questions</h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-q">Is this allowed by poker sites?</div>
+                    <div class="faq-a">Vision is a calculator that displays mathematical information. It doesn't automate actions, read memory, or interact with the poker client. It reads the screen and shows you the math.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">Which poker sites are supported?</div>
+                    <div class="faq-a">Works with PokerStars, GGPoker, PartyPoker, 888poker, WPT Global, and most other clients. Custom calibration available for unlisted sites.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">Does it work on Windows?</div>
+                    <div class="faq-a">Currently Mac only. Windows version is in development and coming soon. Join the waitlist to be notified.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">How accurate is the equity calculation?</div>
+                    <div class="faq-a">We run 5,000 Monte Carlo simulations per calculation, giving accuracy within 1%. Calculations complete in under 100ms.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">Can other players see the overlay?</div>
+                    <div class="faq-a">No. The overlay only appears on your screen. It's a transparent window that sits on top of your poker client.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">What's your refund policy?</div>
+                    <div class="faq-a">7-day free trial with no credit card. If you subscribe and aren't satisfied, full refund within 30 days.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to play smarter?</h2>
+            <p>Join thousands making better decisions at the table.</p>
+            <a href="#pricing" class="btn btn-primary">Start Free Trial</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-links">
+            <a href="#">Terms</a>
+            <a href="#">Privacy</a>
+            <a href="#">Contact</a>
+            <a href="#">Support</a>
+        </div>
+        <p class="copyright">© 2024 vision.poker. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('billing-toggle');
+        const monthlyLabel = document.getElementById('monthly-label');
+        const yearlyLabel = document.getElementById('yearly-label');
+        const priceAmount = document.getElementById('price-amount');
+        const pricePeriod = document.getElementById('price-period');
+        const priceNote = document.getElementById('price-note');
+        let isYearly = false;
+
+        toggle.addEventListener('click', () => {
+            isYearly = !isYearly;
+            toggle.classList.toggle('yearly', isYearly);
+            monthlyLabel.classList.toggle('active', !isYearly);
+            yearlyLabel.classList.toggle('active', isYearly);
+
+            if (isYearly) {
+                priceAmount.textContent = '$360';
+                pricePeriod.textContent = '/year';
+                priceNote.textContent = 'That\'s just $30/month. Save 2 months!';
+            } else {
+                priceAmount.textContent = '$36';
+                pricePeriod.textContent = '/month';
+                priceNote.textContent = 'Billed monthly. Cancel anytime.';
+            }
+        });
+
+        document.querySelectorAll('.faq-q').forEach(q => {
+            q.addEventListener('click', () => q.parentElement.classList.toggle('open'));
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>

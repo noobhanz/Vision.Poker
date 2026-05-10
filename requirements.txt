@@ -1,0 +1,25 @@
+# Core
+mss>=9.0.1
+pygetwindow>=0.0.9         # Windows only
+pydantic-settings>=2.0
+numpy>=1.24
+opencv-python>=4.8
+
+# Vision
+easyocr>=1.7
+ultralytics>=8.0           # YOLOv8
+imagehash>=4.3             # pHash for frame dedup
+
+# Poker engine
+phevaluator>=0.5
+
+# Overlay
+PyQt6>=6.5
+
+# Menu bar app (macOS)
+rumps>=0.4.0
+
+# Dev/test
+pytest>=7.4
+pytest-asyncio>=0.21
+Pillow>=10.0               # for test fixtures
