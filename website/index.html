@@ -188,63 +188,235 @@
         }
 
         .demo-inner {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
-        .hud-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 40px;
+        .demo-label {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .demo-label h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .demo-label p {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .poker-table {
+            position: relative;
+            background: linear-gradient(145deg, #1a472a 0%, #0d2818 100%);
+            border-radius: 120px;
+            padding: 60px 80px;
+            border: 12px solid #2d1810;
+            box-shadow:
+                inset 0 0 60px rgba(0,0,0,0.5),
+                0 20px 60px rgba(0,0,0,0.4),
+                0 0 0 4px #1a0f08;
+            overflow: hidden;
+        }
+
+        .poker-table::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 100px;
+            pointer-events: none;
+        }
+
+        .table-felt {
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .community-cards {
+            display: flex;
+            gap: 8px;
             justify-content: center;
         }
 
-        .hud {
-            background: rgba(9, 9, 11, 0.95);
-            border: 1px solid var(--border);
+        .card {
+            width: 52px;
+            height: 72px;
+            background: linear-gradient(145deg, #fff 0%, #f0f0f0 100%);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .card.hearts, .card.diamonds { color: #dc2626; }
+        .card.spades, .card.clubs { color: #1a1a1a; }
+
+        .card-rank { font-size: 16px; line-height: 1; }
+        .card-suit { font-size: 20px; line-height: 1; margin-top: 2px; }
+
+        .pot-display {
+            background: rgba(0,0,0,0.4);
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .hero-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(0,0,0,0.3);
+            padding: 16px 24px;
             border-radius: 12px;
-            padding: 16px 20px;
-            width: 260px;
-            font-size: 13px;
+        }
+
+        .hero-cards {
+            display: flex;
+            gap: 4px;
+        }
+
+        .hero-cards .card {
+            width: 44px;
+            height: 60px;
+            font-size: 14px;
+        }
+
+        .hero-cards .card-rank { font-size: 14px; }
+        .hero-cards .card-suit { font-size: 16px; }
+
+        .hero-stack {
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            border: none;
+            cursor: default;
+        }
+
+        .action-btn.fold { background: #6b7280; color: white; }
+        .action-btn.call { background: #2563eb; color: white; }
+        .action-btn.raise { background: #dc2626; color: white; }
+
+        .hud {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(9, 9, 11, 0.96);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 14px 18px;
+            width: 220px;
+            font-size: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
 
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 10px;
         }
 
-        .hud-logo { font-weight: 700; font-size: 12px; letter-spacing: 0.05em; }
+        .hud-logo { font-weight: 700; font-size: 10px; letter-spacing: 0.08em; color: var(--text-muted); }
         .hud-logo span { color: var(--accent); }
-        .hud-live { font-size: 11px; color: var(--accent); font-weight: 500; }
+
+        .hud-live {
+            font-size: 9px;
+            color: var(--accent);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .hud-live::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
 
         .hud-row {
             display: flex;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 5px 0;
         }
 
-        .hud-label { color: var(--text-muted); }
-        .hud-value { font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .hud-label { color: var(--text-muted); font-size: 11px; }
+        .hud-value { font-weight: 600; font-family: 'SF Mono', Monaco, monospace; font-size: 12px; }
         .hud-value.green { color: var(--accent); }
+        .hud-value.red { color: #ef4444; }
         .hud-value.blue { color: #3b82f6; }
 
-        .hud-divider { height: 1px; background: var(--border); margin: 12px 0; }
+        .hud-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 10px 0; }
+
+        .hud-section-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
 
         .hud-action {
-            background: rgba(0, 200, 83, 0.1);
+            background: linear-gradient(135deg, rgba(0, 200, 83, 0.15) 0%, rgba(0, 200, 83, 0.05) 100%);
             border: 1px solid var(--accent);
             border-radius: 6px;
-            padding: 10px;
+            padding: 10px 12px;
             text-align: center;
             color: var(--accent);
-            font-weight: 600;
-            margin-top: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            margin-top: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .hud-action small {
+            display: block;
+            font-size: 9px;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-top: 2px;
         }
 
         /* Features */
@@ -563,7 +735,59 @@
 
     <section class="demo" id="demo">
         <div class="demo-inner">
-            <div class="hud-container">
+            <div class="demo-label">
+                <h3>Live Preview</h3>
+                <p>This is what you see while playing</p>
+            </div>
+            <div class="poker-table">
+                <!-- Community Cards -->
+                <div class="table-felt">
+                    <div class="community-cards">
+                        <div class="card hearts">
+                            <span class="card-rank">K</span>
+                            <span class="card-suit">&hearts;</span>
+                        </div>
+                        <div class="card spades">
+                            <span class="card-rank">9</span>
+                            <span class="card-suit">&spades;</span>
+                        </div>
+                        <div class="card hearts">
+                            <span class="card-rank">7</span>
+                            <span class="card-suit">&hearts;</span>
+                        </div>
+                        <div class="card clubs">
+                            <span class="card-rank">2</span>
+                            <span class="card-suit">&clubs;</span>
+                        </div>
+                        <div class="card hearts">
+                            <span class="card-rank">4</span>
+                            <span class="card-suit">&hearts;</span>
+                        </div>
+                    </div>
+
+                    <div class="pot-display">Pot: $127.50</div>
+
+                    <div class="hero-area">
+                        <div class="hero-cards">
+                            <div class="card hearts">
+                                <span class="card-rank">A</span>
+                                <span class="card-suit">&hearts;</span>
+                            </div>
+                            <div class="card hearts">
+                                <span class="card-rank">J</span>
+                                <span class="card-suit">&hearts;</span>
+                            </div>
+                        </div>
+                        <div class="hero-stack">$245.00</div>
+                        <div class="action-buttons">
+                            <div class="action-btn fold">Fold</div>
+                            <div class="action-btn call">Call $35</div>
+                            <div class="action-btn raise">Raise</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HUD Overlay -->
                 <div class="hud">
                     <div class="hud-header">
                         <span class="hud-logo"><span>VISION</span>.POKER</span>
@@ -575,22 +799,26 @@
                     </div>
                     <div class="hud-row">
                         <span class="hud-label">Pot Odds</span>
-                        <span class="hud-value">28.1%</span>
+                        <span class="hud-value">21.5%</span>
                     </div>
                     <div class="hud-row">
                         <span class="hud-label">Required Eq</span>
-                        <span class="hud-value">28.1%</span>
+                        <span class="hud-value">21.5%</span>
                     </div>
                     <div class="hud-row">
                         <span class="hud-label">EV (call)</span>
-                        <span class="hud-value green">+$42.50</span>
+                        <span class="hud-value green">+$58.40</span>
                     </div>
                     <div class="hud-divider"></div>
+                    <div class="hud-section-label">Hand Analysis</div>
                     <div class="hud-row">
-                        <span class="hud-label">Outs: 9</span>
-                        <span class="hud-value blue">Flush Draw</span>
+                        <span class="hud-label">Made Hand</span>
+                        <span class="hud-value">Flush (A high)</span>
                     </div>
-                    <div class="hud-action">CALL — equity exceeds required</div>
+                    <div class="hud-action">
+                        CALL
+                        <small>Equity exceeds required</small>
+                    </div>
                 </div>
             </div>
         </div>
