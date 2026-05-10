@@ -7,12 +7,12 @@ Capture rate: configurable, default 2fps
 """
 
 import asyncio
-from typing import AsyncGenerator, Callable, Optional
+from typing import AsyncGenerator, Callable, Optional, Literal
 
 import mss
 import numpy as np
 
-from .window_finder import WindowRect, find_poker_window
+from .window_finder import WindowRect, find_poker_window, find_active_poker_window
 
 
 def capture_window(rect: WindowRect) -> np.ndarray:
@@ -107,21 +107,40 @@ async def capture_loop(
 class ScreenCapture:
     """
     Synchronous screen capture class for simpler usage patterns.
+
+    Supports two modes:
+    - "title": Search for a window by title substring (single table)
+    - "active": Follow the currently focused poker window (multi-table)
     """
 
-    def __init__(self, title_substring: str):
+    def __init__(
+        self,
+        title_substring: str = "",
+        mode: Literal["title", "active"] = "title",
+    ):
         """
         Initialize screen capture for a window.
 
         Args:
-            title_substring: Part of window title to search for
+            title_substring: Part of window title to search for (used in "title" mode)
+            mode: "title" to search by title, "active" to follow focused window
         """
         self.title_substring = title_substring
+        self.mode = mode
         self._last_rect: Optional[WindowRect] = None
+        self._last_window_id: Optional[int] = None
 
     def find_window(self) -> Optional[WindowRect]:
         """Find and cache the poker window rect."""
-        self._last_rect = find_poker_window(self.title_substring)
+        if self.mode == "active":
+            self._last_rect = find_active_poker_window()
+        else:
+            self._last_rect = find_poker_window(self.title_substring)
+
+        # Track window ID for change detection
+        if self._last_rect:
+            self._last_window_id = self._last_rect.window_id
+
         return self._last_rect
 
     def capture(self) -> Optional[np.ndarray]:
@@ -144,3 +163,10 @@ class ScreenCapture:
     def last_rect(self) -> Optional[WindowRect]:
         """Get the last captured window rect."""
         return self._last_rect
+
+    @property
+    def window_changed(self) -> bool:
+        """Check if the tracked window changed (useful for multi-table)."""
+        if self._last_rect is None:
+            return False
+        return self._last_rect.window_id != self._last_window_id

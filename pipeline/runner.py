@@ -50,7 +50,12 @@ class PipelineRunner:
         self.settings = settings or Settings()
 
         # Initialize components
-        self.screen_capture = ScreenCapture(self.settings.poker_client_title)
+        # Use active window mode for multi-table support
+        capture_mode = "active" if self.settings.multi_table_mode else "title"
+        self.screen_capture = ScreenCapture(
+            title_substring=self.settings.poker_client_title,
+            mode=capture_mode,
+        )
         self.card_detector = CardDetector(
             model_path=self.settings.yolo_model_path,
             confidence_threshold=self.settings.confidence_threshold,

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     hud_hotkey: str = "F9"
     hud_opacity: float = 0.88
     hud_position: str = "top-right"  # top-left | top-right | bottom-right
+    multi_table_mode: bool = True  # follow active poker window (multi-table support)
     debug_mode: bool = False  # saves annotated frames to /debug/
 
     class Config:
