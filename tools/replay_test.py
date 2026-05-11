@@ -18,7 +18,6 @@ from typing import Optional
 import cv2
 import numpy as np
 
-from config.settings import Settings
 from engine.draws import classify_draw, count_outs, made_hand_description
 from engine.equity import calculate_equity
 from engine.ev import ev_call, ev_fold, recommendation
@@ -30,7 +29,11 @@ from vision.roi_config import load_skin_config
 from vision.state_parser import StateParser
 
 
-def compute_metrics(state: GameState, monte_carlo_n: int = 1000) -> Metrics:
+def compute_metrics(
+    state: GameState,
+    monte_carlo_n: int = 1000,
+    parse_status: str = "OK",
+) -> Metrics:
     """Compute metrics from game state."""
     equity = calculate_equity(
         hero=state.hero_cards,
@@ -45,7 +48,7 @@ def compute_metrics(state: GameState, monte_carlo_n: int = 1000) -> Metrics:
     outs = count_outs(state.hero_cards, state.board_cards)
     draw_type = classify_draw(state.hero_cards, state.board_cards)
     made_hand = made_hand_description(state.hero_cards, state.board_cards)
-    rec = recommendation(ev, equity, req_eq)
+    rec = recommendation(ev, equity, req_eq) if state.action_mode == "decision" else "WAIT"
 
     return Metrics(
         equity=equity,
@@ -58,7 +61,117 @@ def compute_metrics(state: GameState, monte_carlo_n: int = 1000) -> Metrics:
         made_hand_rank=made_hand,
         recommendation=rec,
         confidence=state.confidence,
+        street=state.street,
+        parse_status=parse_status,
+        action_mode=state.action_mode,
     )
+
+
+def state_to_dict(state: GameState) -> dict:
+    """Convert GameState to a stable JSON-serializable dict."""
+    return {
+        "hero_cards": state.hero_cards,
+        "board_cards": state.board_cards,
+        "pot_size": state.pot_size,
+        "bet_to_call": state.bet_to_call,
+        "hero_stack": state.hero_stack,
+        "villain_stacks": state.villain_stacks,
+        "action_mode": state.action_mode,
+        "legal_actions": state.legal_actions,
+        "action_amounts": state.action_amounts,
+        "num_players": state.num_players,
+        "street": state.street.value,
+        "confidence": state.confidence,
+    }
+
+
+def metrics_to_dict(metrics: Metrics) -> dict:
+    """Convert Metrics to a stable JSON-serializable dict."""
+    return {
+        "equity": round(metrics.equity, 4),
+        "pot_odds": round(metrics.pot_odds, 4),
+        "required_equity": round(metrics.required_equity, 4),
+        "ev_call": round(metrics.ev_call, 2),
+        "outs": metrics.outs,
+        "draw_type": metrics.draw_type.value,
+        "made_hand": metrics.made_hand_rank,
+        "recommendation": metrics.recommendation,
+        "confidence": round(metrics.confidence, 4),
+        "street": metrics.street.value,
+        "parse_status": metrics.parse_status,
+        "action_mode": metrics.action_mode,
+    }
+
+
+def load_expected(frame_path: Path) -> Optional[dict]:
+    """
+    Load expected state from a sidecar JSON file.
+
+    Supported names:
+    - frame.png -> frame.json
+    - frame.png -> frame.expected.json
+    """
+    candidates = [
+        frame_path.with_suffix(".json"),
+        frame_path.with_suffix(".expected.json"),
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            with open(candidate) as f:
+                return json.load(f)
+
+    return None
+
+
+def compare_expected(actual: dict, expected: dict, money_tolerance: float = 0.01) -> dict:
+    """Compare parsed state against expected fixture values."""
+    mismatches = []
+
+    def expected_value(key: str):
+        if key in expected:
+            return expected[key]
+        if "state" in expected and key in expected["state"]:
+            return expected["state"][key]
+        return None
+
+    for key in ["hero_cards", "board_cards", "street", "action_mode", "legal_actions"]:
+        expected_item = expected_value(key)
+        if expected_item is not None and actual.get(key) != expected_item:
+            mismatches.append({
+                "field": key,
+                "expected": expected_item,
+                "actual": actual.get(key),
+            })
+
+    expected_amounts = expected_value("action_amounts")
+    if expected_amounts is not None:
+        actual_amounts = actual.get("action_amounts", {})
+        for action, expected_amount in expected_amounts.items():
+            actual_amount = actual_amounts.get(action)
+            if actual_amount is None or abs(float(actual_amount) - float(expected_amount)) > money_tolerance:
+                mismatches.append({
+                    "field": f"action_amounts.{action}",
+                    "expected": expected_amount,
+                    "actual": actual_amount,
+                })
+
+    for key in ["pot_size", "bet_to_call", "hero_stack"]:
+        expected_item = expected_value(key)
+        if expected_item is None:
+            continue
+        actual_item = actual.get(key)
+        if actual_item is None or abs(float(actual_item) - float(expected_item)) > money_tolerance:
+            mismatches.append({
+                "field": key,
+                "expected": expected_item,
+                "actual": actual_item,
+            })
+
+    return {
+        "passed": not mismatches,
+        "mismatches": mismatches,
+    }
 
 
 def process_frame(
@@ -93,18 +206,18 @@ def process_frame(
 
     # Compute metrics
     try:
-        metrics = compute_metrics(state, monte_carlo_n)
+        metrics = compute_metrics(state, monte_carlo_n, status)
     except Exception as e:
         return state, None, f"Metrics failed: {e}"
 
     # Save debug image if requested
     if debug_output_dir:
         debug_output_dir.mkdir(parents=True, exist_ok=True)
-        debug_frame = draw_debug_overlay(frame, state, metrics, scaled_config)
+        debug_frame = draw_debug_overlay(frame, state, metrics, scaled_config, status)
         debug_path = debug_output_dir / f"debug_{frame_path.stem}.png"
         cv2.imwrite(str(debug_path), debug_frame)
 
-    return state, metrics, "OK"
+    return state, metrics, status
 
 
 def draw_debug_overlay(
@@ -112,6 +225,7 @@ def draw_debug_overlay(
     state: GameState,
     metrics: Metrics,
     roi_config,
+    status: str = "OK",
 ) -> np.ndarray:
     """Draw debug information on the frame."""
     debug = frame.copy()
@@ -136,12 +250,22 @@ def draw_debug_overlay(
 
     # Pot size
     draw_roi(roi_config.pot_size, (0, 255, 255), f"Pot: ${state.pot_size}")
+    draw_roi(roi_config.bet_to_call, (255, 0, 255), f"Call: ${state.bet_to_call}")
+    draw_roi(roi_config.hero_stack, (255, 255, 0), f"Stack: ${state.hero_stack}")
+
+    for i, roi in enumerate(roi_config.villain_stacks):
+        label = f"Villain {i + 1}"
+        if i < len(state.villain_stacks):
+            label += f": ${state.villain_stacks[i]}"
+        draw_roi(roi, (128, 128, 255), label)
 
     # Info overlay
     info_lines = [
+        f"Status: {status}",
         f"Hero: {' '.join(state.hero_cards)}",
         f"Board: {' '.join(state.board_cards) if state.board_cards else 'PREFLOP'}",
-        f"Pot: ${state.pot_size:.0f}  Call: ${state.bet_to_call:.0f}",
+        f"Street: {state.street.value.upper()}",
+        f"Pot: ${state.pot_size:.2f}  Call: ${state.bet_to_call:.2f}",
         f"Equity: {metrics.equity*100:.1f}%",
         f"EV(call): ${metrics.ev_call:.2f}",
         f"Rec: {metrics.recommendation}",
@@ -185,6 +309,11 @@ def main():
         action="store_true",
         help="Output results as JSON",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with non-zero status if any expected fixture comparison fails",
+    )
 
     args = parser.parse_args()
 
@@ -218,8 +347,9 @@ def main():
         print(f"No image files found in {input_dir}")
         sys.exit(1)
 
-    print(f"Processing {len(frame_files)} frames...")
-    print()
+    if not args.json:
+        print(f"Processing {len(frame_files)} frames...")
+        print()
 
     results = []
 
@@ -232,31 +362,32 @@ def main():
             debug_dir,
         )
 
+        expected = load_expected(frame_path)
+
         result = {
             "file": frame_path.name,
             "status": status,
         }
 
         if state:
-            result["state"] = {
-                "hero_cards": state.hero_cards,
-                "board_cards": state.board_cards,
-                "pot_size": state.pot_size,
-                "bet_to_call": state.bet_to_call,
-                "street": state.street.value,
-                "confidence": state.confidence,
+            result["state"] = state_to_dict(state)
+
+            if expected:
+                result["expected"] = compare_expected(result["state"], expected)
+        elif expected:
+            result["expected"] = {
+                "passed": False,
+                "mismatches": [
+                    {
+                        "field": "state",
+                        "expected": "parsed GameState",
+                        "actual": status,
+                    }
+                ],
             }
 
         if metrics:
-            result["metrics"] = {
-                "equity": round(metrics.equity, 4),
-                "pot_odds": round(metrics.pot_odds, 4),
-                "ev_call": round(metrics.ev_call, 2),
-                "outs": metrics.outs,
-                "draw_type": metrics.draw_type.value,
-                "made_hand": metrics.made_hand_rank,
-                "recommendation": metrics.recommendation,
-            }
+            result["metrics"] = metrics_to_dict(metrics)
 
         results.append(result)
 
@@ -266,23 +397,48 @@ def main():
             if state:
                 print(f"Hero: {' '.join(state.hero_cards)}")
                 print(f"Board: {' '.join(state.board_cards) if state.board_cards else '(preflop)'}")
-                print(f"Pot: ${state.pot_size:.0f}  Call: ${state.bet_to_call:.0f}")
+                print(f"Pot: ${state.pot_size:.2f}  Call: ${state.bet_to_call:.2f}")
             if metrics:
                 print(f"Equity: {metrics.equity*100:.1f}%")
                 print(f"Pot Odds: {metrics.pot_odds*100:.1f}%")
                 print(f"EV(call): ${metrics.ev_call:.2f}")
                 print(f"Made Hand: {metrics.made_hand_rank}")
                 print(f"Recommendation: {metrics.recommendation}")
+            if expected:
+                comparison = result.get("expected", {"passed": False, "mismatches": []})
+                if comparison["passed"]:
+                    print("Expected: PASS")
+                else:
+                    print("Expected: FAIL")
+                    for mismatch in comparison["mismatches"]:
+                        print(
+                            f"  {mismatch['field']}: expected "
+                            f"{mismatch['expected']!r}, got {mismatch['actual']!r}"
+                        )
             print()
 
     if args.json:
         print(json.dumps(results, indent=2))
 
-    # Summary
-    successful = sum(1 for r in results if r["status"] == "OK")
-    print(f"Processed: {len(results)} frames")
-    print(f"Successful: {successful}")
-    print(f"Failed: {len(results) - successful}")
+    if args.strict:
+        failures = [
+            r for r in results
+            if "expected" in r and not r["expected"]["passed"]
+        ]
+        if failures:
+            sys.exit(1)
+
+    if not args.json:
+        # Summary
+        successful = sum(
+            1 for r in results
+            if not r["status"].startswith("Parse failed")
+            and not r["status"].startswith("Metrics failed")
+            and not r["status"].startswith("Failed to load")
+        )
+        print(f"Processed: {len(results)} frames")
+        print(f"Parsed: {successful}")
+        print(f"Failed: {len(results) - successful}")
 
 
 if __name__ == "__main__":

@@ -31,6 +31,9 @@ class GameState:
     bet_to_call: float  # amount hero must call
     hero_stack: float
     villain_stacks: list[float] = field(default_factory=list)
+    action_mode: str = "none"  # "decision" | "preselect" | "none"
+    legal_actions: list[str] = field(default_factory=list)
+    action_amounts: dict[str, float] = field(default_factory=dict)
     num_players: int = 2
     street: Street = Street.PREFLOP
     is_tournament: bool = False
@@ -51,3 +54,6 @@ class Metrics:
     made_hand_rank: str  # e.g. "Top Pair", "Flush"
     recommendation: str  # "FOLD" | "CALL" | "RAISE CANDIDATE"
     confidence: float  # pipeline confidence passthrough
+    street: Street = Street.PREFLOP
+    parse_status: str = "OK"
+    action_mode: str = "none"

@@ -1,0 +1,7 @@
+{
+  "hero_cards": ["6h", "5h"],
+  "board_cards": ["Ah", "Kh", "Qh"],
+  "pot_size": 0.10,
+  "hero_stack": 2.27,
+  "street": "flop"
+}

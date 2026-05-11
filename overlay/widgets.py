@@ -107,13 +107,17 @@ class RecommendationWidget(QFrame):
         Set the recommendation display.
 
         Args:
-            rec: "FOLD", "CALL", or "RAISE CANDIDATE"
+            rec: "FOLD", "CALL", "RAISE CANDIDATE", or "WAIT"
             reason: Optional reason text
         """
         self.text.setText(rec)
         self.reason.setText(reason)
 
-        if "FOLD" in rec:
+        if "WAIT" in rec:
+            self.setObjectName("recommendation_box")
+            self.text.setObjectName("recommendation_call")
+            self.arrow.setText("\u25b6")  # Right arrow
+        elif "FOLD" in rec:
             self.setObjectName("recommendation_box_fold")
             self.text.setObjectName("recommendation_fold")
             self.arrow.setText("\u25bc")  # Down arrow

@@ -276,7 +276,14 @@ class PokerHUD(QWidget):
 
         # Update recommendation
         reason = ""
-        if metrics.equity > metrics.required_equity:
+        if metrics.recommendation == "WAIT":
+            if metrics.action_mode == "preselect":
+                reason = "(pre-action controls)"
+            else:
+                reason = "(no decision)"
+        elif metrics.parse_status != "OK":
+            reason = f"({metrics.parse_status.replace('_', ' ').lower()})"
+        elif metrics.equity > metrics.required_equity:
             reason = "(equity > required)"
         elif metrics.equity < metrics.required_equity:
             reason = "(equity < required)"
@@ -284,13 +291,14 @@ class PokerHUD(QWidget):
         self.recommendation_widget.set_recommendation(metrics.recommendation, reason)
 
         # Update confidence and street
-        street_name = "PREFLOP"
-        if hasattr(metrics, "confidence"):
-            # Get street from somewhere - for now use a placeholder
-            self.confidence_widget.set_info(metrics.confidence, street_name)
+        street_name = metrics.street.value.upper()
+        self.confidence_widget.set_info(metrics.confidence, street_name)
 
         # Update status indicator based on confidence
-        if metrics.confidence < 0.7:
+        if metrics.parse_status != "OK":
+            self.status.setText(f"\u25cf {metrics.parse_status.replace('_', ' ')}")
+            self.status.setObjectName("status_warning")
+        elif metrics.confidence < 0.7:
             self.status.setText("\u25cf LOW CONF")
             self.status.setObjectName("status_warning")
         else:

@@ -122,3 +122,29 @@ class TestCardDetectorTemplate:
         results = detector.detect_template(frame, threshold=0.1)
         # May or may not find something, just shouldn't crash
         assert isinstance(results, list)
+
+    def test_rank_suit_template_classifies_known_slot(self, tmp_path):
+        """Rank/suit templates classify a fixed card ROI."""
+        rank_dir = tmp_path / "ranks"
+        suit_dir = tmp_path / "suits"
+        rank_dir.mkdir()
+        suit_dir.mkdir()
+
+        rank_template = np.zeros((10, 10), dtype=np.uint8)
+        np.fill_diagonal(rank_template, 255)
+
+        suit_template = np.zeros((10, 10), dtype=np.uint8)
+        np.fill_diagonal(np.fliplr(suit_template), 255)
+
+        cv2.imwrite(str(rank_dir / "A.png"), rank_template)
+        cv2.imwrite(str(suit_dir / "h.png"), suit_template)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[14:24, 14:24] = cv2.cvtColor(rank_template, cv2.COLOR_GRAY2BGR)
+        frame[34:44, 14:24] = cv2.cvtColor(suit_template, cv2.COLOR_GRAY2BGR)
+
+        detector = CardDetector(template_dir=tmp_path)
+        result = detector.detect_rank_suit_template(frame, (10, 10, 60, 80), threshold=0.5)
+
+        assert len(result) == 1
+        assert result[0].card == "Ah"
