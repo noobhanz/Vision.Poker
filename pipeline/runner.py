@@ -25,7 +25,7 @@ from config.settings import Settings
 from engine.draws import classify_draw, count_outs, made_hand_description
 from engine.equity import calculate_equity
 from engine.ev import ev_call, ev_fold, recommendation
-from engine.models import Metrics
+from engine.models import DrawType, Metrics, Street
 from engine.pot_odds import pot_odds, required_equity
 from vision.card_detector import CardDetector
 from vision.ocr_engine import OCREngine
@@ -163,6 +163,24 @@ class PipelineRunner:
             action_mode=state.action_mode,
         )
 
+    def _idle_metrics(self, parse_status: str) -> Metrics:
+        """Return a conservative HUD state when no active hero hand is readable."""
+        return Metrics(
+            equity=0.0,
+            pot_odds=0.0,
+            required_equity=0.0,
+            ev_call=0.0,
+            ev_fold=0.0,
+            outs=0,
+            draw_type=DrawType.NONE,
+            made_hand_rank="",
+            recommendation="WAIT",
+            confidence=0.0,
+            street=Street.PREFLOP,
+            parse_status=parse_status,
+            action_mode="none",
+        )
+
     async def process_frame(self, frame: np.ndarray, rect: WindowRect) -> Optional[Metrics]:
         """
         Process a single frame through the pipeline.
@@ -187,6 +205,8 @@ class PipelineRunner:
         if state is None:
             if self.settings.debug_mode:
                 print(f"State parse failed: {status}")
+            if status == "HERO_FOLDED":
+                return self._idle_metrics(status)
             return None
 
         # Compute metrics

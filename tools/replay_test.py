@@ -262,6 +262,8 @@ def process_frame(
             debug_frame = draw_roi_debug_overlay(frame, scaled_config, status)
             debug_path = debug_output_dir / f"debug_{frame_path.stem}.png"
             cv2.imwrite(str(debug_path), debug_frame)
+        if status == "HERO_FOLDED":
+            return None, None, status
         return None, None, f"Parse failed: {status}"
 
     # Compute metrics
@@ -547,15 +549,18 @@ def main():
 
     if not args.json:
         # Summary
-        successful = sum(
+        active_hands = sum(1 for r in results if "state" in r)
+        folded = sum(1 for r in results if r["status"] == "HERO_FOLDED")
+        failed = sum(
             1 for r in results
-            if not r["status"].startswith("Parse failed")
-            and not r["status"].startswith("Metrics failed")
-            and not r["status"].startswith("Failed to load")
+            if r["status"].startswith("Parse failed")
+            or r["status"].startswith("Metrics failed")
+            or r["status"].startswith("Failed to load")
         )
         print(f"Processed: {len(results)} frames")
-        print(f"Parsed: {successful}")
-        print(f"Failed: {len(results) - successful}")
+        print(f"Active hands parsed: {active_hands}")
+        print(f"Folded/no active hand: {folded}")
+        print(f"Failed: {failed}")
 
         annotated = accuracy_summary["fixtures"]["total"]
         passed = accuracy_summary["fixtures"]["passed"]

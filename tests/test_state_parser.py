@@ -87,6 +87,27 @@ class MissingSecondCardDetector:
         return []
 
 
+class NoHeroCardsDetector:
+    def detect(self, frame, roi):
+        return []
+
+
+def test_parse_with_fallback_reports_hero_folded_for_empty_hero_rois():
+    parser = StateParser(NoHeroCardsDetector(), StubOCREngine())
+    config = ROIConfig(
+        hero_card_1=ROIRegion(0, 0, 10, 10),
+        hero_card_2=ROIRegion(10, 0, 10, 10),
+    )
+
+    state, status = parser.parse_with_fallback(
+        np.zeros((100, 120, 3), dtype=np.uint8),
+        config,
+    )
+
+    assert state is None
+    assert status == "HERO_FOLDED"
+
+
 def test_parse_with_fallback_reports_duplicate_cards():
     parser = StateParser(DuplicateCardDetector(), StubOCREngine())
     config = ROIConfig(

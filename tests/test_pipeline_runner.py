@@ -25,3 +25,14 @@ def test_frame_buffer_tracks_action_and_amount_regions():
     assert "bet_to_call" in names
     assert "hero_stack" in names
     assert "villain_stack_0" in names
+
+
+def test_idle_metrics_clear_recommendation_after_fold():
+    runner = PipelineRunner.__new__(PipelineRunner)
+
+    metrics = runner._idle_metrics("HERO_FOLDED")
+
+    assert metrics.recommendation == "WAIT"
+    assert metrics.parse_status == "HERO_FOLDED"
+    assert metrics.action_mode == "none"
+    assert metrics.equity == 0.0
