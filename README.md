@@ -107,6 +107,9 @@ python -m tools.replay_test --input tests/fixtures/sample_frames/pokerstars --sk
 
 # Test the hard overlapped-card reference frame
 python -m tools.replay_test --input tests/fixtures/sample_frames/pokerstars/pokerstars_020.png --skin pokerstars_mac_cash --monte-carlo 20 --strict
+
+# Summarize or import screenshot fixtures
+python -m tools.fixture_intake --dest tests/fixtures/sample_frames/pokerstars
 ```
 
 ## Project Structure

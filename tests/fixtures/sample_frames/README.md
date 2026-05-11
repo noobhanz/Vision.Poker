@@ -33,3 +33,9 @@ Render a single annotated debug image with:
 ```bash
 python -m tools.debug_frame --input tests/fixtures/sample_frames/sample_001.png --skin pokerstars
 ```
+
+Import a new screenshot batch with:
+
+```bash
+python -m tools.fixture_intake --input raw_screenshots --dest tests/fixtures/sample_frames/pokerstars --prefix pokerstars
+```

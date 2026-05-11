@@ -35,6 +35,27 @@ python -m tools.replay_test \
 
 The replay summary reports expected fixture pass rate plus field-level accuracy for cards, board, pot, stack, street, and visible action controls. Reference-only screenshots without sidecar JSON are processed, but excluded from accuracy percentages.
 
+## Fixture Intake
+
+Summarize the current PokerStars fixture set:
+
+```bash
+python -m tools.fixture_intake \
+  --dest tests/fixtures/sample_frames/pokerstars
+```
+
+Import a new screenshot batch with stable names and duplicate detection:
+
+```bash
+python -m tools.fixture_intake \
+  --input "/Users/antonhorning/Desktop/PokerStars Screenshots" \
+  --dest tests/fixtures/sample_frames/pokerstars \
+  --prefix pokerstars \
+  --manifest tests/fixtures/sample_frames/pokerstars/fixture_manifest.json
+```
+
+Use `--dry-run` first when checking a large batch. Imported screenshots without sidecar JSON are marked `reference-only` until they are annotated.
+
 Run one screenshot, useful when fixing a specific fixture:
 
 ```bash

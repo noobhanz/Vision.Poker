@@ -8,6 +8,8 @@ The sidecar JSON currently asserts card identity, board cards, pot size, hero st
 
 `tools.replay_test` prints per-field accuracy for annotated fixtures. Unannotated screenshots remain useful visual references, but they are excluded from the accuracy denominator.
 
+Use `tools.fixture_intake` to import new screenshot batches. It assigns stable names, skips duplicate image content, and reports which frames still need sidecar JSON annotations.
+
 Street distribution in the screenshot batch:
 
 - Preflop/no-board screenshots: 9 total (`pokerstars_001`, `005`, `006`, `008`, `009`, `017`, `019`, `020`, `021`)
