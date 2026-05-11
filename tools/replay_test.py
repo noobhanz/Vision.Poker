@@ -286,7 +286,7 @@ def main():
     parser.add_argument(
         "--input", "-i",
         required=True,
-        help="Directory containing frame images",
+        help="Image file or directory containing frame images",
     )
     parser.add_argument(
         "--skin", "-s",
@@ -317,9 +317,9 @@ def main():
 
     args = parser.parse_args()
 
-    input_dir = Path(args.input)
-    if not input_dir.exists():
-        print(f"Input directory not found: {input_dir}")
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"Input path not found: {input_path}")
         sys.exit(1)
 
     debug_dir = Path(args.debug_output) if args.debug_output else None
@@ -337,14 +337,17 @@ def main():
     state_parser = StateParser(card_detector, ocr_engine)
 
     # Find frame files
-    frame_files = sorted(
-        list(input_dir.glob("*.png")) +
-        list(input_dir.glob("*.jpg")) +
-        list(input_dir.glob("*.jpeg"))
-    )
+    if input_path.is_file():
+        frame_files = [input_path]
+    else:
+        frame_files = sorted(
+            list(input_path.glob("*.png")) +
+            list(input_path.glob("*.jpg")) +
+            list(input_path.glob("*.jpeg"))
+        )
 
     if not frame_files:
-        print(f"No image files found in {input_dir}")
+        print(f"No image files found in {input_path}")
         sys.exit(1)
 
     if not args.json:
