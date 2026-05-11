@@ -257,6 +257,11 @@ def process_frame(
     )
 
     if state is None:
+        if debug_output_dir:
+            debug_output_dir.mkdir(parents=True, exist_ok=True)
+            debug_frame = draw_roi_debug_overlay(frame, scaled_config, status)
+            debug_path = debug_output_dir / f"debug_{frame_path.stem}.png"
+            cv2.imwrite(str(debug_path), debug_frame)
         return None, None, f"Parse failed: {status}"
 
     # Compute metrics
@@ -273,6 +278,57 @@ def process_frame(
         cv2.imwrite(str(debug_path), debug_frame)
 
     return state, metrics, status
+
+
+def draw_roi_debug_overlay(
+    frame: np.ndarray,
+    roi_config,
+    status: str,
+) -> np.ndarray:
+    """Draw ROI regions when parsing fails before a GameState exists."""
+    debug = frame.copy()
+
+    def draw_roi(roi, color, label):
+        if roi is None:
+            return
+        x, y, w, h = roi.as_tuple()
+        cv2.rectangle(debug, (x, y), (x + w, y + h), color, 2)
+        cv2.putText(
+            debug,
+            label,
+            (x, max(15, y - 5)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            color,
+            1,
+        )
+
+    for i, roi in enumerate(roi_config.get_hero_card_rois()):
+        draw_roi(roi, (0, 255, 0), f"Hero {i + 1}")
+
+    for i, roi in enumerate(roi_config.get_board_card_rois()):
+        draw_roi(roi, (255, 0, 0), f"Board {i + 1}")
+
+    draw_roi(roi_config.pot_size, (0, 255, 255), "Pot")
+    draw_roi(roi_config.bet_to_call, (255, 0, 255), "Call")
+    draw_roi(roi_config.hero_stack, (255, 255, 0), "Stack")
+    draw_roi(roi_config.action_buttons, (0, 128, 255), "Actions")
+
+    for i, roi in enumerate(roi_config.villain_stacks):
+        draw_roi(roi, (128, 128, 255), f"Villain {i + 1}")
+
+    cv2.rectangle(debug, (10, 10), (420, 45), (0, 0, 0), -1)
+    cv2.putText(
+        debug,
+        f"Status: {status}",
+        (20, 35),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (0, 255, 255),
+        2,
+    )
+
+    return debug
 
 
 def draw_debug_overlay(
