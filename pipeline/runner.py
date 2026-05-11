@@ -205,7 +205,7 @@ class PipelineRunner:
         if state is None:
             if self.settings.debug_mode:
                 print(f"State parse failed: {status}")
-            if status == "HERO_FOLDED":
+            if status == "NO_ACTIVE_HERO_CARDS":
                 return self._idle_metrics(status)
             return None
 

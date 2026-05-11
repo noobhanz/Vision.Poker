@@ -92,7 +92,7 @@ class NoHeroCardsDetector:
         return []
 
 
-def test_parse_with_fallback_reports_hero_folded_for_empty_hero_rois():
+def test_parse_with_fallback_reports_no_active_hero_cards_for_empty_hero_rois():
     parser = StateParser(NoHeroCardsDetector(), StubOCREngine())
     config = ROIConfig(
         hero_card_1=ROIRegion(0, 0, 10, 10),
@@ -105,7 +105,7 @@ def test_parse_with_fallback_reports_hero_folded_for_empty_hero_rois():
     )
 
     assert state is None
-    assert status == "HERO_FOLDED"
+    assert status == "NO_ACTIVE_HERO_CARDS"
 
 
 def test_parse_with_fallback_reports_duplicate_cards():

@@ -272,7 +272,7 @@ class StateParser:
         if len(hero_cards) < 2:
             if self._last_parse_error == "OK":
                 self._last_parse_error = (
-                    "HERO_FOLDED" if not hero_cards else "INCOMPLETE_HERO_CARDS"
+                    "NO_ACTIVE_HERO_CARDS" if not hero_cards else "INCOMPLETE_HERO_CARDS"
                 )
             return None
 

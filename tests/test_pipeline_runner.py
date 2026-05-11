@@ -27,12 +27,12 @@ def test_frame_buffer_tracks_action_and_amount_regions():
     assert "villain_stack_0" in names
 
 
-def test_idle_metrics_clear_recommendation_after_fold():
+def test_idle_metrics_clear_recommendation_without_active_hero_cards():
     runner = PipelineRunner.__new__(PipelineRunner)
 
-    metrics = runner._idle_metrics("HERO_FOLDED")
+    metrics = runner._idle_metrics("NO_ACTIVE_HERO_CARDS")
 
     assert metrics.recommendation == "WAIT"
-    assert metrics.parse_status == "HERO_FOLDED"
+    assert metrics.parse_status == "NO_ACTIVE_HERO_CARDS"
     assert metrics.action_mode == "none"
     assert metrics.equity == 0.0

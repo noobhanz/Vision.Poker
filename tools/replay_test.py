@@ -262,7 +262,7 @@ def process_frame(
             debug_frame = draw_roi_debug_overlay(frame, scaled_config, status)
             debug_path = debug_output_dir / f"debug_{frame_path.stem}.png"
             cv2.imwrite(str(debug_path), debug_frame)
-        if status == "HERO_FOLDED":
+        if status == "NO_ACTIVE_HERO_CARDS":
             return None, None, status
         return None, None, f"Parse failed: {status}"
 
@@ -550,7 +550,10 @@ def main():
     if not args.json:
         # Summary
         active_hands = sum(1 for r in results if "state" in r)
-        folded = sum(1 for r in results if r["status"] == "HERO_FOLDED")
+        no_active_hero_cards = sum(
+            1 for r in results
+            if r["status"] == "NO_ACTIVE_HERO_CARDS"
+        )
         failed = sum(
             1 for r in results
             if r["status"].startswith("Parse failed")
@@ -559,7 +562,7 @@ def main():
         )
         print(f"Processed: {len(results)} frames")
         print(f"Active hands parsed: {active_hands}")
-        print(f"Folded/no active hand: {folded}")
+        print(f"No active hero cards: {no_active_hero_cards}")
         print(f"Failed: {failed}")
 
         annotated = accuracy_summary["fixtures"]["total"]
