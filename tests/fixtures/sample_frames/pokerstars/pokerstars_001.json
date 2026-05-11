@@ -1,0 +1,11 @@
+{
+  "hero_cards": ["2h", "6s"],
+  "board_cards": [],
+  "pot_size": 0.03,
+  "bet_to_call": 0.02,
+  "hero_stack": 2.0,
+  "action_mode": "decision",
+  "legal_actions": ["fold", "call", "raise"],
+  "action_amounts": {"call": 0.02, "raise": 0.04},
+  "street": "preflop"
+}

@@ -159,6 +159,18 @@ class ScreenCapture:
 
         return capture_window(rect)
 
+    def capture_rect(self, rect: WindowRect) -> Optional[np.ndarray]:
+        """
+        Capture a frame from a previously selected window rectangle.
+
+        This avoids re-querying the active/window-title state between window
+        lookup and screen capture, which keeps the captured pixels aligned with
+        the rect used by downstream ROI scaling.
+        """
+        if rect.width <= 0 or rect.height <= 0:
+            return None
+        return capture_window(rect)
+
     @property
     def last_rect(self) -> Optional[WindowRect]:
         """Get the last captured window rect."""

@@ -1,0 +1,11 @@
+{
+  "hero_cards": ["Td", "Jd"],
+  "board_cards": ["9c", "Jc", "2h", "As"],
+  "pot_size": 0.23,
+  "bet_to_call": 0.0,
+  "hero_stack": 1.9,
+  "action_mode": "decision",
+  "legal_actions": ["check", "bet"],
+  "action_amounts": {"bet": 0.02},
+  "street": "turn"
+}

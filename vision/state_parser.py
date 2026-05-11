@@ -10,6 +10,7 @@ from typing import Optional
 import numpy as np
 
 from engine.models import GameState, Street
+from .action_reader import ActionReader
 from .card_detector import CardDetector, DetectedCard
 from .ocr_engine import OCREngine
 from .roi_config import ROIConfig
@@ -34,6 +35,7 @@ class StateParser:
         """
         self.card_detector = card_detector or CardDetector()
         self.ocr_engine = ocr_engine or OCREngine()
+        self.action_reader = ActionReader(self.ocr_engine)
 
     def _infer_street(self, num_board_cards: int) -> Street:
         """Infer the current street from board card count."""
@@ -160,6 +162,9 @@ class StateParser:
         bet_value: Optional[float] = None
         hero_stack: Optional[float] = None
         villain_stacks: list[float] = []
+        legal_actions: list[str] = []
+        action_amounts: dict[str, float] = {}
+        action_mode = "none"
 
         if roi_config.pot_size:
             pot_value = self.ocr_engine.read_number(
@@ -170,6 +175,17 @@ class StateParser:
             bet_value = self.ocr_engine.read_number(
                 frame, roi_config.bet_to_call.as_tuple()
             )
+
+        if roi_config.action_buttons:
+            action_state = self.action_reader.read(
+                frame,
+                roi_config.action_buttons.as_tuple(),
+            )
+            legal_actions = action_state.legal_actions
+            action_amounts = action_state.action_amounts
+            action_mode = action_state.mode
+            if action_state.bet_to_call is not None:
+                bet_value = action_state.bet_to_call
 
         if roi_config.hero_stack:
             hero_stack = self.ocr_engine.read_number(
@@ -213,6 +229,9 @@ class StateParser:
             bet_to_call=bet_value or 0.0,
             hero_stack=hero_stack or 0.0,
             villain_stacks=villain_stacks,
+            action_mode=action_mode,
+            legal_actions=legal_actions,
+            action_amounts=action_amounts,
             num_players=len(villain_stacks) + 1,
             street=self._infer_street(len(board_cards)),
             is_tournament=False,  # Could be detected from blind structure

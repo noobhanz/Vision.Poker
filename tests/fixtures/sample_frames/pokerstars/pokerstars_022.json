@@ -1,0 +1,7 @@
+{
+  "hero_cards": ["Jc", "Js"],
+  "board_cards": ["6c", "7h", "4h", "Ts"],
+  "pot_size": 3.82,
+  "hero_stack": 0.37,
+  "street": "turn"
+}

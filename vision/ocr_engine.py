@@ -6,6 +6,7 @@ Returns float or None if extraction fails.
 """
 
 import re
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -30,14 +31,26 @@ def _get_reader():
 class OCREngine:
     """OCR engine for extracting numeric values from poker table regions."""
 
-    def __init__(self, use_gpu: bool = False):
+    def __init__(
+        self,
+        use_gpu: bool = False,
+        model_storage_directory: Optional[str | Path] = None,
+        use_easyocr: bool = False,
+    ):
         """
         Initialize OCR engine.
 
         Args:
             use_gpu: Whether to use GPU for OCR (requires CUDA)
+            model_storage_directory: Optional EasyOCR model cache directory
         """
         self.use_gpu = use_gpu
+        self.use_easyocr = use_easyocr
+        self.model_storage_directory = Path(
+            model_storage_directory or "/tmp/vision_poker_easyocr"
+        )
+        self.template_dir = Path(__file__).parent / "templates" / "ocr"
+        self._ocr_templates: dict[str, list[np.ndarray]] = {}
         self._reader = None
 
     @property
@@ -47,7 +60,16 @@ class OCREngine:
             try:
                 import easyocr
 
-                self._reader = easyocr.Reader(["en"], gpu=self.use_gpu, verbose=False)
+                self.model_storage_directory.mkdir(parents=True, exist_ok=True)
+                self._reader = easyocr.Reader(
+                    ["en"],
+                    gpu=self.use_gpu,
+                    verbose=False,
+                    model_storage_directory=str(self.model_storage_directory),
+                    user_network_directory=str(
+                        self.model_storage_directory / "user_network"
+                    ),
+                )
             except ImportError:
                 raise ImportError("easyocr not installed. Run: pip install easyocr")
         return self._reader
@@ -132,20 +154,123 @@ class OCREngine:
         if region.size == 0:
             return None
 
-        try:
-            # Run OCR
-            results = self.reader.readtext(region)
+        template_value = self._read_number_template(region)
+        if template_value is not None:
+            return template_value
 
-            if not results:
-                return None
+        if self.use_easyocr:
+            try:
+                # Run OCR
+                results = self.reader.readtext(region)
 
-            # Combine all detected text
-            all_text = " ".join([r[1] for r in results])
+                if results:
+                    # Combine all detected text
+                    all_text = " ".join([r[1] for r in results])
 
-            return self._clean_number(all_text)
+                    value = self._clean_number(all_text)
+                    if value is not None:
+                        return value
 
-        except Exception:
+            except Exception:
+                pass
+
+        return self._read_number_template(region)
+
+    def _load_ocr_templates(self) -> None:
+        """Load lightweight numeric OCR templates."""
+        if self._ocr_templates:
+            return
+        if not self.template_dir.exists():
+            return
+
+        import cv2
+
+        for path in sorted(self.template_dir.glob("*.png")):
+            label = path.name.split("_", 1)[0]
+            if label == "dot":
+                label = "."
+            if label not in "0123456789.":
+                continue
+            img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+            if img is not None:
+                self._ocr_templates.setdefault(label, []).append(img)
+
+    def _template_mask(self, region: np.ndarray) -> np.ndarray:
+        """Create a high-contrast mask for white poker table text."""
+        import cv2
+
+        gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY) if len(region.shape) == 3 else region
+        gray = cv2.resize(gray, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+        _, mask = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+        return mask
+
+    def _read_number_template(self, region: np.ndarray) -> Optional[float]:
+        """Read a number using extracted digit/dot templates."""
+        import cv2
+
+        self._load_ocr_templates()
+        if not self._ocr_templates:
             return None
+
+        # For action buttons like "Call\n$0.02", focus on the lower amount line.
+        if region.shape[0] > 35:
+            region = region[int(region.shape[0] * 0.45) :, :]
+
+        # For pot labels like "Pot: $0.03", focus on the right-side amount.
+        if region.shape[1] > 80 and region.shape[0] < 35:
+            region = region[:, int(region.shape[1] * 0.45) :]
+
+        mask = self._template_mask(region)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        boxes = []
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if h < 8 or w < 2:
+                continue
+            boxes.append((x, y, w, h))
+
+        chars = []
+        for x, y, w, h in sorted(boxes):
+            pad = 3
+            char_img = mask[
+                max(0, y - pad) : min(mask.shape[0], y + h + pad),
+                max(0, x - pad) : min(mask.shape[1], x + w + pad),
+            ]
+            label, score = self._match_ocr_char(char_img)
+            if label is not None and score >= 0.45:
+                chars.append(label)
+
+        text = "".join(chars)
+        # Drop common leading currency misreads by keeping from first digit.
+        match = re.search(r"\d[\d.]*", text)
+        if not match:
+            return None
+
+        return self._clean_number(match.group())
+
+    def _match_ocr_char(self, char_img: np.ndarray) -> tuple[Optional[str], float]:
+        """Match one segmented character against OCR templates."""
+        import cv2
+
+        best_label: Optional[str] = None
+        best_score = 0.0
+        for label, templates in self._ocr_templates.items():
+            for template in templates:
+                resized = cv2.resize(
+                    template,
+                    (char_img.shape[1], char_img.shape[0]),
+                    interpolation=cv2.INTER_AREA,
+                )
+                result = cv2.matchTemplate(
+                    char_img,
+                    resized,
+                    cv2.TM_CCOEFF_NORMED,
+                )
+                _, max_val, _, _ = cv2.minMaxLoc(result)
+                if max_val > best_score:
+                    best_label = label
+                    best_score = float(max_val)
+        return best_label, best_score
 
     def read_all_regions(
         self,

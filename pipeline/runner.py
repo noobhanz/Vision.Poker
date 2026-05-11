@@ -75,6 +75,7 @@ class PipelineRunner:
 
         # Frame buffer for change detection
         self._frame_buffer: Optional[FrameBuffer] = None
+        self._frame_buffer_signature: Optional[tuple[Optional[int], int, int]] = None
 
         # Output queue for HUD
         self.metrics_queue = MetricsQueue()
@@ -84,12 +85,12 @@ class PipelineRunner:
         self._last_metrics: Optional[Metrics] = None
         self._hud = None
 
-    def _init_frame_buffer(self, frame_shape: tuple) -> None:
+    def _init_frame_buffer(self, roi_config: ROIConfig) -> None:
         """Initialize frame buffer with ROI regions."""
         rois = []
 
         # Add card ROIs for change detection
-        for i, roi in enumerate(self.roi_config.get_hero_card_rois()):
+        for i, roi in enumerate(roi_config.get_hero_card_rois()):
             rois.append(
                 ROI(
                     x=int(roi.x),
@@ -100,7 +101,7 @@ class PipelineRunner:
                 )
             )
 
-        for i, roi in enumerate(self.roi_config.get_board_card_rois()):
+        for i, roi in enumerate(roi_config.get_board_card_rois()):
             rois.append(
                 ROI(
                     x=int(roi.x),
@@ -112,20 +113,20 @@ class PipelineRunner:
             )
 
         # Add pot size ROI
-        if self.roi_config.pot_size:
+        if roi_config.pot_size:
             rois.append(
                 ROI(
-                    x=int(self.roi_config.pot_size.x),
-                    y=int(self.roi_config.pot_size.y),
-                    width=int(self.roi_config.pot_size.w),
-                    height=int(self.roi_config.pot_size.h),
+                    x=int(roi_config.pot_size.x),
+                    y=int(roi_config.pot_size.y),
+                    width=int(roi_config.pot_size.w),
+                    height=int(roi_config.pot_size.h),
                     name="pot_size",
                 )
             )
 
         self._frame_buffer = FrameBuffer(rois)
 
-    def _compute_metrics(self, state) -> Metrics:
+    def _compute_metrics(self, state, parse_status: str = "OK") -> Metrics:
         """Compute all metrics from game state."""
         # Calculate equity
         equity = calculate_equity(
@@ -148,8 +149,11 @@ class PipelineRunner:
         draw_type = classify_draw(state.hero_cards, state.board_cards)
         made_hand = made_hand_description(state.hero_cards, state.board_cards)
 
-        # Get recommendation
-        rec = recommendation(ev, equity, req_eq)
+        # Get recommendation only when hero has an actual decision.
+        if state.action_mode == "decision":
+            rec = recommendation(ev, equity, req_eq)
+        else:
+            rec = "WAIT"
 
         return Metrics(
             equity=equity,
@@ -162,6 +166,9 @@ class PipelineRunner:
             made_hand_rank=made_hand,
             recommendation=rec,
             confidence=state.confidence,
+            street=state.street,
+            parse_status=parse_status,
+            action_mode=state.action_mode,
         )
 
     async def process_frame(self, frame: np.ndarray, rect: WindowRect) -> Optional[Metrics]:
@@ -192,7 +199,7 @@ class PipelineRunner:
 
         # Compute metrics
         try:
-            metrics = self._compute_metrics(state)
+            metrics = self._compute_metrics(state, status)
         except Exception as e:
             if self.settings.debug_mode:
                 print(f"Metrics computation failed: {e}")
@@ -224,14 +231,21 @@ class PipelineRunner:
                 await asyncio.sleep(interval)
                 continue
 
-            frame = self.screen_capture.capture()
+            frame = self.screen_capture.capture_rect(rect)
             if frame is None:
                 await asyncio.sleep(interval)
                 continue
 
-            # Initialize frame buffer on first frame
-            if self._frame_buffer is None:
-                self._init_frame_buffer(frame.shape)
+            scaled_config = self.roi_config.scale_to_window(rect.width, rect.height)
+            signature = (rect.window_id, rect.width, rect.height)
+
+            # Initialize or reset frame buffer when the tracked table changes.
+            if (
+                self._frame_buffer is None
+                or self._frame_buffer_signature != signature
+            ):
+                self._init_frame_buffer(scaled_config)
+                self._frame_buffer_signature = signature
 
             # Check for changes
             if not self._frame_buffer.has_changed(frame):
