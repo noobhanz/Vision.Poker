@@ -9,7 +9,7 @@ The sidecar JSON currently asserts card identity, board cards, pot size, hero st
 Street distribution in the screenshot batch:
 
 - Preflop/no-board screenshots: 9 total (`pokerstars_001`, `005`, `006`, `008`, `009`, `017`, `019`, `020`, `021`)
-- Strict preflop annotations currently passing: 8 (`pokerstars_020` is the excluded hard reference case)
+- Strict preflop annotations currently passing: 9
 - Flop screenshots: 4 total (`pokerstars_002`, `007`, `010`, `018`)
 - Turn screenshots: 4 total (`pokerstars_003`, `011`, `012`, `022`)
 - River/showdown screenshots: 5 total (`pokerstars_004`, `013`, `014`, `015`, `016`)
@@ -28,6 +28,7 @@ Annotated frames:
 - `pokerstars_017`: preflop, hero `6h 5h`
 - `pokerstars_018`: flop, hero `6h 5h`
 - `pokerstars_019`: preflop, hero `Jc Js`
+- `pokerstars_020`: preflop, hero `Jc Js`
 - `pokerstars_021`: preflop all-in/showdown, hero `Jd Js`
 - `pokerstars_022`: turn all-in/showdown, hero `Jc Js`
 
@@ -36,4 +37,3 @@ Unannotated reference frames:
 - `pokerstars_002` through `pokerstars_004`
 - `pokerstars_007`
 - `pokerstars_014` through `pokerstars_016`
-- `pokerstars_020` has hero-card/chip overlap and is kept as a hard reference case

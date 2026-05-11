@@ -1,0 +1,8 @@
+{
+  "hero_cards": ["Jc", "Js"],
+  "board_cards": [],
+  "pot_size": 0.42,
+  "hero_stack": 2.11,
+  "action_mode": "none",
+  "street": "preflop"
+}

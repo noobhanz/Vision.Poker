@@ -5,6 +5,7 @@ Apply sanity checks: pot > 0, cards are valid, no duplicate cards.
 Set overall confidence score based on individual detection confidences.
 """
 
+from itertools import product
 from typing import Optional
 
 import numpy as np
@@ -128,6 +129,49 @@ class StateParser:
 
         return min(score, 1.0)
 
+    def _detect_unique_cards(
+        self,
+        frame: np.ndarray,
+        rois,
+        max_candidates_per_slot: int = 6,
+        require_all_slots: bool = True,
+    ) -> list[DetectedCard]:
+        """
+        Detect one card per fixed slot while avoiding duplicate card labels.
+
+        Individual slot classifiers can be slightly wrong when chips overlap a
+        card. Choosing the best non-duplicate assignment across slots lets the
+        stronger slot claim the contested label and preserves the next-best
+        candidate for the other slot.
+        """
+        candidates_by_slot: list[list[DetectedCard]] = []
+        for roi in rois:
+            candidates = self.card_detector.detect(frame, roi.as_tuple())
+            candidates = sorted(
+                candidates,
+                key=lambda detection: detection.confidence,
+                reverse=True,
+            )[:max_candidates_per_slot]
+            if candidates or require_all_slots:
+                candidates_by_slot.append(candidates)
+
+        if not candidates_by_slot or any(not candidates for candidates in candidates_by_slot):
+            return []
+
+        best_assignment: tuple[DetectedCard, ...] | None = None
+        best_score = -1.0
+        for assignment in product(*candidates_by_slot):
+            cards = [detection.card for detection in assignment]
+            if len(set(cards)) != len(cards):
+                continue
+
+            score = sum(detection.confidence for detection in assignment)
+            if score > best_score:
+                best_assignment = assignment
+                best_score = score
+
+        return list(best_assignment or [])
+
     def parse(
         self,
         frame: np.ndarray,
@@ -144,18 +188,17 @@ class StateParser:
             GameState if parsing succeeds, None if critical data missing
         """
         # Detect hero cards
-        hero_detections: list[DetectedCard] = []
-        for roi in roi_config.get_hero_card_rois():
-            card = self.card_detector.detect_single_card(frame, roi.as_tuple())
-            if card:
-                hero_detections.append(card)
+        hero_detections = self._detect_unique_cards(
+            frame,
+            roi_config.get_hero_card_rois(),
+        )
 
         # Detect board cards
-        board_detections: list[DetectedCard] = []
-        for roi in roi_config.get_board_card_rois():
-            card = self.card_detector.detect_single_card(frame, roi.as_tuple())
-            if card:
-                board_detections.append(card)
+        board_detections = self._detect_unique_cards(
+            frame,
+            roi_config.get_board_card_rois(),
+            require_all_slots=False,
+        )
 
         # Extract text values
         pot_value: Optional[float] = None
