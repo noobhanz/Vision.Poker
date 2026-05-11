@@ -1,0 +1,330 @@
+{
+  "destination": "tests/fixtures/sample_frames/pokerstars",
+  "counts": {
+    "total_images": 55,
+    "annotated": 15,
+    "reference_only": 40,
+    "imported": 33,
+    "skipped": 0
+  },
+  "needs_annotation": [
+    "pokerstars_002.png",
+    "pokerstars_003.png",
+    "pokerstars_004.png",
+    "pokerstars_007.png",
+    "pokerstars_014.png",
+    "pokerstars_015.png",
+    "pokerstars_016.png",
+    "pokerstars_023.png",
+    "pokerstars_024.png",
+    "pokerstars_025.png",
+    "pokerstars_026.png",
+    "pokerstars_027.png",
+    "pokerstars_028.png",
+    "pokerstars_029.png",
+    "pokerstars_030.png",
+    "pokerstars_031.png",
+    "pokerstars_032.png",
+    "pokerstars_033.png",
+    "pokerstars_034.png",
+    "pokerstars_035.png",
+    "pokerstars_036.png",
+    "pokerstars_037.png",
+    "pokerstars_038.png",
+    "pokerstars_039.png",
+    "pokerstars_040.png",
+    "pokerstars_041.png",
+    "pokerstars_042.png",
+    "pokerstars_043.png",
+    "pokerstars_044.png",
+    "pokerstars_045.png",
+    "pokerstars_046.png",
+    "pokerstars_047.png",
+    "pokerstars_048.png",
+    "pokerstars_049.png",
+    "pokerstars_050.png",
+    "pokerstars_051.png",
+    "pokerstars_052.png",
+    "pokerstars_053.png",
+    "pokerstars_054.png",
+    "pokerstars_055.png"
+  ],
+  "skipped": [],
+  "entries": [
+    {
+      "filename": "pokerstars_001.png",
+      "annotated": true,
+      "sha256": "8be15ed7c1eaeaf40072b7c7b1c68c0c6144e71863f609f83a1e84d13118b367"
+    },
+    {
+      "filename": "pokerstars_002.png",
+      "annotated": false,
+      "sha256": "fb07287b747922aa11225e0db12a32616a5fdd8b08b4108dbdb9e19cf0c4224d"
+    },
+    {
+      "filename": "pokerstars_003.png",
+      "annotated": false,
+      "sha256": "1ff7cfc65ef8b3327a62a631d40092ff1eab9c6c3a300cf6bde2518ca6f77793"
+    },
+    {
+      "filename": "pokerstars_004.png",
+      "annotated": false,
+      "sha256": "c244257ca21277c3862fd81d50556979913075fa9429079f4cbcbe1e3cc1291e"
+    },
+    {
+      "filename": "pokerstars_005.png",
+      "annotated": true,
+      "sha256": "280de2ec1d6f6f3d650ae9ae21d1b59b785ec01e4fbb44c3a4a413a54243d722"
+    },
+    {
+      "filename": "pokerstars_006.png",
+      "annotated": true,
+      "sha256": "0961b96c15c70ff3e7a78b60c07a43a5726e5760cd87fbea26c63b8f49e959aa"
+    },
+    {
+      "filename": "pokerstars_007.png",
+      "annotated": false,
+      "sha256": "d3bb485e635e4d57ddd7394a6376dabaf396b6e14a29bc74121aa8a172545dd9"
+    },
+    {
+      "filename": "pokerstars_008.png",
+      "annotated": true,
+      "sha256": "fc1de38ba740fd20e2f64ad2691b1837305ea44bc8df749be70f040927726c0d"
+    },
+    {
+      "filename": "pokerstars_009.png",
+      "annotated": true,
+      "sha256": "d747df71715ed5a4dd8475e4973f8965646ca8695cb24fa42ff2d2d565543515"
+    },
+    {
+      "filename": "pokerstars_010.png",
+      "annotated": true,
+      "sha256": "fe0de1d20f02c2a999fe956f46414856e196d7922246e9edab8612210e3e5473"
+    },
+    {
+      "filename": "pokerstars_011.png",
+      "annotated": true,
+      "sha256": "a242c9cf0718add2c2b6ec9bc6b6e865277254bd3a1c3a600ecd352fd1816ada"
+    },
+    {
+      "filename": "pokerstars_012.png",
+      "annotated": true,
+      "sha256": "89ffa752f2ee7863d9a9056e9a924bb6fcea96d51c299882a78807baad3683f2"
+    },
+    {
+      "filename": "pokerstars_013.png",
+      "annotated": true,
+      "sha256": "114393696ba26afd337be335ea02885b74a033e98ad38f19846873993f38a157"
+    },
+    {
+      "filename": "pokerstars_014.png",
+      "annotated": false,
+      "sha256": "5bece59722a6a72f4cb6c5eae0ae229b11e2df6e53070c3affd3578b9dfbd099"
+    },
+    {
+      "filename": "pokerstars_015.png",
+      "annotated": false,
+      "sha256": "795cea9dad68a8d689e999450dfbd2ae419813ac8ebe52617ffcdae1e6d7e011"
+    },
+    {
+      "filename": "pokerstars_016.png",
+      "annotated": false,
+      "sha256": "457cfbabb0805ce59f9b7e0bf3451176c74a08f72b2987fd07cbf0e5e7630b2d"
+    },
+    {
+      "filename": "pokerstars_017.png",
+      "annotated": true,
+      "sha256": "baaf56c52466ebcfe6520e2cc9e3215d2a7fddfbe799f960aae4923657230a94"
+    },
+    {
+      "filename": "pokerstars_018.png",
+      "annotated": true,
+      "sha256": "5f13c4be46b502bf08bd368fcdb163cfe5c84133dd608011cc687c2f8a25f4a0"
+    },
+    {
+      "filename": "pokerstars_019.png",
+      "annotated": true,
+      "sha256": "66e27786b03dc448965eac7d1032434019ad4fd94680e4cd2cc0c26e4f123ee3"
+    },
+    {
+      "filename": "pokerstars_020.png",
+      "annotated": true,
+      "sha256": "337f03af7ed084f0853ff9e40cd260d6ff776ff17539ef53ff129f93787348b2"
+    },
+    {
+      "filename": "pokerstars_021.png",
+      "annotated": true,
+      "sha256": "920410a7ba28c53bcaa70f4840ece6c843a6d1b8c0dd574daff67e4648b098d2"
+    },
+    {
+      "filename": "pokerstars_022.png",
+      "annotated": true,
+      "sha256": "bc9c0315db9f63518efd548cdb2e4126d1274523926af08b65ba70d62ce0dd2b"
+    },
+    {
+      "filename": "pokerstars_023.png",
+      "annotated": false,
+      "sha256": "860039c906fc0c2b913acae60e4a0cb96ee808f66c85d4f23041182dc51ef774"
+    },
+    {
+      "filename": "pokerstars_024.png",
+      "annotated": false,
+      "sha256": "2f12ff2586bd6d83c298b040b599cf1dd35b300a40b97b77579062f15f89495e"
+    },
+    {
+      "filename": "pokerstars_025.png",
+      "annotated": false,
+      "sha256": "76e0feac191d0b46851d663041d44e9536ae098c299a6f4d0a9a6358e1cfa7d0"
+    },
+    {
+      "filename": "pokerstars_026.png",
+      "annotated": false,
+      "sha256": "66837996a02476cd9356232b475895f1653b4631f1402ab8e874a7f77fd74693"
+    },
+    {
+      "filename": "pokerstars_027.png",
+      "annotated": false,
+      "sha256": "5ca75801ddb80424a5547d2375e9d331b5766e72b902028322dd1202b459392d"
+    },
+    {
+      "filename": "pokerstars_028.png",
+      "annotated": false,
+      "sha256": "3592c8e729657dfa390c950f8c038e2388343fb9796316e808fa2733b0299ec9"
+    },
+    {
+      "filename": "pokerstars_029.png",
+      "annotated": false,
+      "sha256": "e29847d5130ad599e65e2f253147bdd2c9266de0a6fa6697f9bc0329e6c79fce"
+    },
+    {
+      "filename": "pokerstars_030.png",
+      "annotated": false,
+      "sha256": "a8bc9c35eb9ad8921ae67cadbb699d614cf00adc257dc159b8b6cf749b34d4fd"
+    },
+    {
+      "filename": "pokerstars_031.png",
+      "annotated": false,
+      "sha256": "2bfda2e782d29ece01991aba999b55a8e51fd0a26f8245b697fbfcb4e5f3ba8f"
+    },
+    {
+      "filename": "pokerstars_032.png",
+      "annotated": false,
+      "sha256": "a3897bca4a6456ed62c5e1c5b8f924e7b96381ebaac61a4b813dfa62cfceabba"
+    },
+    {
+      "filename": "pokerstars_033.png",
+      "annotated": false,
+      "sha256": "d8681d5efb1bd9305cbc4598c0b0fe3f304ee6ffcc69ff683992c9e2a2d42b57"
+    },
+    {
+      "filename": "pokerstars_034.png",
+      "annotated": false,
+      "sha256": "3ee8300308980e97b28a075166aa22b2b006f8c1f2bd80b2c21793fe084eb353"
+    },
+    {
+      "filename": "pokerstars_035.png",
+      "annotated": false,
+      "sha256": "83f44fe53a22b39b6da4c39e12527ba0d5f159abc9ea75ff8d48edd429eedcea"
+    },
+    {
+      "filename": "pokerstars_036.png",
+      "annotated": false,
+      "sha256": "d06946db7c6ceee753b468304b347d154a7caffa90218011a2a31f1a54006c77"
+    },
+    {
+      "filename": "pokerstars_037.png",
+      "annotated": false,
+      "sha256": "fafdc14e0e676f9598bd890c8130dde972095a96434e30697de2944caa48c5c3"
+    },
+    {
+      "filename": "pokerstars_038.png",
+      "annotated": false,
+      "sha256": "0b7e49a5477b530381667701a05c03ef631ef8f85aa36c3398539e47ea312897"
+    },
+    {
+      "filename": "pokerstars_039.png",
+      "annotated": false,
+      "sha256": "1081aa3bfebcd2472f6c04f6ec4ce60772866955bb983fe50fab71a5c1a1c046"
+    },
+    {
+      "filename": "pokerstars_040.png",
+      "annotated": false,
+      "sha256": "1938d9ddf0d32eefe5b17d4488cd3784a2a7cfeba6511d4136bd579445c277b8"
+    },
+    {
+      "filename": "pokerstars_041.png",
+      "annotated": false,
+      "sha256": "a29a1050bfda39462f6bb8bffa2d19f0d4e4eeb10bdb941e0998f769abe6371d"
+    },
+    {
+      "filename": "pokerstars_042.png",
+      "annotated": false,
+      "sha256": "5073f16a1aca65d4b88a73e97c2d3bb93ae842f731de30021da658fcef9136ee"
+    },
+    {
+      "filename": "pokerstars_043.png",
+      "annotated": false,
+      "sha256": "ea67d526d248b149dfe3aa56c8d4ba3f2ab7f99df2f10e753d1f05ad5fd8f155"
+    },
+    {
+      "filename": "pokerstars_044.png",
+      "annotated": false,
+      "sha256": "97a2ade40811e179fd8a2caa83e864c1d69e3cef9de49b12bc41615cf130def5"
+    },
+    {
+      "filename": "pokerstars_045.png",
+      "annotated": false,
+      "sha256": "69063544eab9e7d01bf30598788c400e714f2eb40b7d9910e862f486d2599de1"
+    },
+    {
+      "filename": "pokerstars_046.png",
+      "annotated": false,
+      "sha256": "010e250761e95b03e339dd5b0107747ae74cbbb9fe45e3ba4b0ef99eef62133b"
+    },
+    {
+      "filename": "pokerstars_047.png",
+      "annotated": false,
+      "sha256": "1149f4d64ca25c5c9817780b5fc3d1eabb7b31f5e8e459135c9e66f9a1cecf20"
+    },
+    {
+      "filename": "pokerstars_048.png",
+      "annotated": false,
+      "sha256": "09c28803d0dd028dfee5da7668b86eb6d6a46c9257a04500405bed864b423b48"
+    },
+    {
+      "filename": "pokerstars_049.png",
+      "annotated": false,
+      "sha256": "d47f1e9f3ad4beb606cadca2a37934ae3e93326033c10ee3c2ea4e1abdb713ee"
+    },
+    {
+      "filename": "pokerstars_050.png",
+      "annotated": false,
+      "sha256": "3c5a989f1128616f779131bb03e8a71a66d24ab2d73066beb21b23368002c7e7"
+    },
+    {
+      "filename": "pokerstars_051.png",
+      "annotated": false,
+      "sha256": "1462210ad5f984357993baee2859dce9f3931706012a5f4cd83c73ff523c3365"
+    },
+    {
+      "filename": "pokerstars_052.png",
+      "annotated": false,
+      "sha256": "222b769b96744aab34cca3468b9d4ea115a6bad91707cbe2e43e17553b5c2f54"
+    },
+    {
+      "filename": "pokerstars_053.png",
+      "annotated": false,
+      "sha256": "9dc03a0bc5d65e0f7f30e6c222a9b46068c60cd0587cf3a17642c279a3971d94"
+    },
+    {
+      "filename": "pokerstars_054.png",
+      "annotated": false,
+      "sha256": "81bceed05f3435e77eae0ab2a209541c487e9014bca98ac8025ef01ab53ad2e5"
+    },
+    {
+      "filename": "pokerstars_055.png",
+      "annotated": false,
+      "sha256": "e2927eb241a71f06e10e8d2b315d3ae16ecf9d955206644aacb6109fe1d11433"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # PokerStars Fixture Batch
 
-These screenshots were copied from `/Users/antonhorning/Desktop/PokerStars Screenshots` and renamed to stable fixture names.
+These screenshots were copied from local PokerStars screenshot batches and renamed to stable fixture names.
 
 Frames with visible, reliably parsed VantaBlue hole cards have sidecar JSON files. Frames without visible hero cards, or with known overlay/card occlusion issues, are kept as visual references but are not strict parser fixtures yet because the current pipeline requires hero cards before it can create a `GameState`.
 
@@ -10,7 +10,14 @@ The sidecar JSON currently asserts card identity, board cards, pot size, hero st
 
 Use `tools.fixture_intake` to import new screenshot batches. It assigns stable names, skips duplicate image content, and reports which frames still need sidecar JSON annotations.
 
-Street distribution in the screenshot batch:
+Current fixture status:
+
+- Total screenshots: 55
+- Strict annotated screenshots: 15
+- Reference-only screenshots needing sidecar JSON: 40
+- Latest imported range: `pokerstars_023` through `pokerstars_055`
+
+Street distribution in the strict annotated baseline:
 
 - Preflop/no-board screenshots: 9 total (`pokerstars_001`, `005`, `006`, `008`, `009`, `017`, `019`, `020`, `021`)
 - Strict preflop annotations currently passing: 9
@@ -41,3 +48,4 @@ Unannotated reference frames:
 - `pokerstars_002` through `pokerstars_004`
 - `pokerstars_007`
 - `pokerstars_014` through `pokerstars_016`
+- `pokerstars_023` through `pokerstars_055`
