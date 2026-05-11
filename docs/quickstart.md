@@ -11,8 +11,8 @@ Get vision.poker up and running in 15 minutes.
 ## Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/PokerScanner.git
-cd PokerScanner
+git clone https://github.com/noobhanz/Vision.Poker.git
+cd Vision.Poker
 ```
 
 ## Step 2: Set Up Stripe
@@ -92,7 +92,7 @@ stripe listen --forward-to localhost:8000/stripe/webhook
 In a new terminal:
 
 ```bash
-cd /path/to/PokerScanner
+cd /path/to/Vision.Poker
 
 # Create virtual environment
 python3 -m venv venv
@@ -165,8 +165,8 @@ Choose a platform:
 **Or manually:**
 ```bash
 # On your server
-git clone https://github.com/yourusername/PokerScanner.git
-cd PokerScanner/backend
+git clone https://github.com/noobhanz/Vision.Poker.git
+cd Vision.Poker/backend
 pip install -r requirements.txt
 # Configure .env
 uvicorn app.main:app --host 0.0.0.0 --port 8000

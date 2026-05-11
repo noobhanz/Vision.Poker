@@ -75,7 +75,7 @@ def download_redirect():
     """
     # For now, redirect to GitHub releases or a placeholder
     return RedirectResponse(
-        url="https://github.com/noobhanz/PokerScanner/releases/latest",
+        url="https://github.com/noobhanz/Vision.Poker/releases/latest",
         status_code=302,
     )
 
@@ -90,9 +90,9 @@ def download_platform(platform: str):
     """
     # Map platform to download URL
     downloads = {
-        "mac": "https://github.com/noobhanz/PokerScanner/releases/latest/download/VisionPoker.dmg",
-        "windows": "https://github.com/noobhanz/PokerScanner/releases/latest/download/VisionPoker.exe",
-        "linux": "https://github.com/noobhanz/PokerScanner/releases/latest/download/VisionPoker.AppImage",
+        "mac": "https://github.com/noobhanz/Vision.Poker/releases/latest/download/VisionPoker.dmg",
+        "windows": "https://github.com/noobhanz/Vision.Poker/releases/latest/download/VisionPoker.exe",
+        "linux": "https://github.com/noobhanz/Vision.Poker/releases/latest/download/VisionPoker.AppImage",
     }
 
     url = downloads.get(platform.lower())

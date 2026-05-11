@@ -126,8 +126,8 @@ sudo apt update
 sudo apt install python3.11 python3.11-venv nginx certbot
 
 # Clone repository
-git clone https://github.com/yourusername/PokerScanner.git
-cd PokerScanner/backend
+git clone https://github.com/noobhanz/Vision.Poker.git
+cd Vision.Poker/backend
 
 # Setup Python environment
 python3.11 -m venv venv
@@ -154,10 +154,10 @@ After=network.target
 [Service]
 User=www-data
 Group=www-data
-WorkingDirectory=/home/user/PokerScanner/backend
-Environment="PATH=/home/user/PokerScanner/backend/venv/bin"
-EnvironmentFile=/home/user/PokerScanner/backend/.env
-ExecStart=/home/user/PokerScanner/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/home/user/Vision.Poker/backend
+Environment="PATH=/home/user/Vision.Poker/backend/venv/bin"
+EnvironmentFile=/home/user/Vision.Poker/backend/.env
+ExecStart=/home/user/Vision.Poker/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 
 [Install]
