@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-10.15+-blue" alt="macOS">
-  <img src="https://img.shields.io/badge/Python-3.10+-green" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.11+-green" alt="Python">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
 </p>
 
@@ -30,12 +30,14 @@ That's it! Look for **V.P** in your menu bar.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vision-poker.git
-cd vision-poker
+git clone https://github.com/noobhanz/Vision.Poker.git
+cd Vision.Poker
 
 # Run the installer
 python3 install.py
 ```
+
+For contributor setup and offline replay commands, see [`docs/dev-setup.md`](docs/dev-setup.md).
 
 ## Usage
 
@@ -98,16 +100,19 @@ python -m tools.calibrate_roi --window "YourPokerClient" --output custom.json
 
 ```bash
 # Run all tests
-pytest tests/ -v
+python -m pytest -q
 
-# Test with sample frames
-python -m tools.replay_test --input tests/fixtures/sample_frames/ --skin pokerstars
+# Test the annotated PokerStars screenshot batch
+python -m tools.replay_test --input tests/fixtures/sample_frames/pokerstars --skin pokerstars_mac_cash --monte-carlo 100 --strict
+
+# Test the hard overlapped-card reference frame
+python -m tools.replay_test --input tests/fixtures/sample_frames/pokerstars/pokerstars_020.png --skin pokerstars_mac_cash --monte-carlo 20 --strict
 ```
 
 ## Project Structure
 
 ```
-vision-poker/
+Vision.Poker/
 ├── capture/           # Screen capture module
 ├── vision/            # Card detection and OCR
 ├── engine/            # Poker math (equity, pot odds, EV)
@@ -122,8 +127,8 @@ vision-poker/
 
 1. **Capture**: `mss` captures the poker window region at 2fps
 2. **Frame Buffer**: `imagehash` pHash detects if game state changed
-3. **Card Detection**: YOLOv8 detects cards, falls back to template matching
-4. **OCR**: EasyOCR extracts numeric values from text regions
+3. **Card Detection**: fixed-slot rank/suit templates classify PokerStars cards, with YOLO/template hooks available for future paths
+4. **OCR**: lightweight numeric templates extract poker amounts, with EasyOCR available as an optional fallback
 5. **State Parser**: Validates and combines detections into GameState
 6. **Engine**: Computes equity (Monte Carlo), pot odds, EV, draws
 7. **HUD**: PyQt6 renders metrics in transparent overlay

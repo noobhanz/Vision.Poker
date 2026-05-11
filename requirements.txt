@@ -1,6 +1,7 @@
 # Core
 mss>=9.0.1
-pygetwindow>=0.0.9         # Windows only
+pygetwindow>=0.0.9; sys_platform == "win32"  # Windows window discovery
+pyobjc-framework-Quartz>=10.0; sys_platform == "darwin"  # macOS window discovery
 pydantic-settings>=2.0
 numpy>=1.24
 opencv-python>=4.8
@@ -18,7 +19,7 @@ phevaluator>=0.5
 PyQt6>=6.5
 
 # Menu bar app (macOS)
-rumps>=0.4.0
+rumps>=0.4.0; sys_platform == "darwin"
 
 # Dev/test
 pytest>=7.4

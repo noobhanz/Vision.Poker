@@ -15,14 +15,18 @@ authors = [
 
 dependencies = [
     "mss>=9.0.1",
+    "pygetwindow>=0.0.9; sys_platform == 'win32'",
+    "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
     "pydantic-settings>=2.0",
     "numpy>=1.24",
     "opencv-python>=4.8",
+    "httpx>=0.25.0",
     "easyocr>=1.7",
     "ultralytics>=8.0",
     "imagehash>=4.3",
     "phevaluator>=0.5",
     "PyQt6>=6.5",
+    "rumps>=0.4.0; sys_platform == 'darwin'",
     "Pillow>=10.0",
 ]
 
