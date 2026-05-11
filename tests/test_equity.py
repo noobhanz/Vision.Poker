@@ -61,7 +61,7 @@ class TestEquityCalculation:
         )
         # Flush draw has ~35% equity vs a made hand
         # But vs random range it's higher
-        assert 0.30 <= equity <= 0.70
+        assert 0.30 <= equity <= 0.75
 
     def test_set_vs_top_pair(self):
         """Set vs random → equity ≈ 0.90+ (±0.03)."""

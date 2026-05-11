@@ -390,7 +390,7 @@ class CardDetector:
                 self.detect_rank_suit_template(
                     frame,
                     (0, 0, frame.shape[1], frame.shape[0]),
-                    threshold=min(threshold, 0.72),
+                    threshold=min(threshold, 0.70),
                 )
             )
 
