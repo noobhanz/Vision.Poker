@@ -18,6 +18,7 @@ class ActionState:
     mode: str = "none"
     preaction_count: int = 0
     confidence: float = 0.0
+    amount_unknown: bool = False
 
 
 class ActionReader:
@@ -64,6 +65,7 @@ class ActionReader:
         legal_actions: list[str] = []
         action_amounts: dict[str, float] = {}
         bet_to_call: Optional[float] = None
+        amount_unknown = False
         confidences = []
 
         fold_visible = (
@@ -88,6 +90,8 @@ class ActionReader:
                 if amount is not None and amount > 0:
                     bet_to_call = amount
                     action_amounts["call"] = amount
+                else:
+                    amount_unknown = True
             else:
                 bet_to_call = 0.0
 
@@ -110,6 +114,7 @@ class ActionReader:
             action_amounts=action_amounts,
             mode="decision",
             confidence=confidence,
+            amount_unknown=amount_unknown,
         )
 
     def _padded_roi(

@@ -148,3 +148,35 @@ class TestCardDetectorTemplate:
 
         assert len(result) == 1
         assert result[0].card == "Ah"
+
+    def test_rank_suit_fallback_runs_when_full_templates_are_incomplete(self, tmp_path):
+        """A missing full-card label can still classify through rank/suit templates."""
+        rank_dir = tmp_path / "ranks"
+        suit_dir = tmp_path / "suits"
+        cards_dir = tmp_path / "cards"
+        rank_dir.mkdir()
+        suit_dir.mkdir()
+        cards_dir.mkdir()
+
+        rank_template = np.zeros((10, 10), dtype=np.uint8)
+        np.fill_diagonal(rank_template, 255)
+
+        suit_template = np.zeros((10, 10), dtype=np.uint8)
+        np.fill_diagonal(np.fliplr(suit_template), 255)
+
+        cv2.imwrite(str(rank_dir / "A.png"), rank_template)
+        cv2.imwrite(str(suit_dir / "h.png"), suit_template)
+        cv2.imwrite(
+            str(cards_dir / "2c_unrelated.png"),
+            np.full((20, 20, 3), 127, dtype=np.uint8),
+        )
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[14:24, 14:24] = cv2.cvtColor(rank_template, cv2.COLOR_GRAY2BGR)
+        frame[34:44, 14:24] = cv2.cvtColor(suit_template, cv2.COLOR_GRAY2BGR)
+
+        detector = CardDetector(template_dir=tmp_path)
+        result = detector.detect_template(frame, (10, 10, 60, 80), threshold=0.95)
+
+        assert len(result) == 1
+        assert result[0].card == "Ah"

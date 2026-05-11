@@ -208,6 +208,7 @@ class StateParser:
         legal_actions: list[str] = []
         action_amounts: dict[str, float] = {}
         action_mode = "none"
+        action_amount_unknown = False
 
         if roi_config.pot_size:
             pot_value = self.ocr_engine.read_number(
@@ -227,6 +228,7 @@ class StateParser:
             legal_actions = action_state.legal_actions
             action_amounts = action_state.action_amounts
             action_mode = action_state.mode
+            action_amount_unknown = action_state.amount_unknown
             if action_state.bet_to_call is not None:
                 bet_value = action_state.bet_to_call
 
@@ -275,6 +277,7 @@ class StateParser:
             action_mode=action_mode,
             legal_actions=legal_actions,
             action_amounts=action_amounts,
+            action_amount_unknown=action_amount_unknown,
             num_players=len(villain_stacks) + 1,
             street=self._infer_street(len(board_cards)),
             is_tournament=False,  # Could be detected from blind structure
@@ -311,5 +314,8 @@ class StateParser:
 
         if state.pot_size <= 0:
             return state, "NO_POT_DETECTED"
+
+        if state.action_amount_unknown:
+            return state, "ACTION_AMOUNT_UNKNOWN"
 
         return state, "OK"

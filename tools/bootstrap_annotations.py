@@ -16,7 +16,6 @@ from vision.roi_config import load_skin_config
 from vision.state_parser import StateParser
 
 from .fixture_intake import image_files
-from .replay_test import load_expected, process_frame, state_to_dict
 
 
 def candidate_path_for(frame_path: Path) -> Path:
@@ -26,7 +25,10 @@ def candidate_path_for(frame_path: Path) -> Path:
 
 def has_strict_annotation(frame_path: Path) -> bool:
     """Return whether replay already treats this frame as an expected fixture."""
-    return load_expected(frame_path) is not None
+    return (
+        frame_path.with_suffix(".json").exists()
+        or frame_path.with_suffix(".expected.json").exists()
+    )
 
 
 def candidate_from_state(frame_name: str, state_dict: dict, status: str) -> dict:
@@ -64,6 +66,8 @@ def bootstrap_candidates(
     limit: Optional[int] = None,
 ) -> dict:
     """Parse unannotated screenshots and write candidate sidecars."""
+    from .replay_test import process_frame, state_to_dict
+
     roi_config = load_skin_config(skin)
     state_parser = StateParser(CardDetector(), OCREngine())
 

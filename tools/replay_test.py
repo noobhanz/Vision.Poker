@@ -48,7 +48,11 @@ def compute_metrics(
     outs = count_outs(state.hero_cards, state.board_cards)
     draw_type = classify_draw(state.hero_cards, state.board_cards)
     made_hand = made_hand_description(state.hero_cards, state.board_cards)
-    rec = recommendation(ev, equity, req_eq) if state.action_mode == "decision" else "WAIT"
+    rec = (
+        recommendation(ev, equity, req_eq)
+        if state.action_mode == "decision" and parse_status == "OK"
+        else "WAIT"
+    )
 
     return Metrics(
         equity=equity,
@@ -79,6 +83,7 @@ def state_to_dict(state: GameState) -> dict:
         "action_mode": state.action_mode,
         "legal_actions": state.legal_actions,
         "action_amounts": state.action_amounts,
+        "action_amount_unknown": state.action_amount_unknown,
         "num_players": state.num_players,
         "street": state.street.value,
         "confidence": state.confidence,

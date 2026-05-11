@@ -89,40 +89,32 @@ class PipelineRunner:
         """Initialize frame buffer with ROI regions."""
         rois = []
 
+        def add_roi(region, name: str) -> None:
+            if region:
+                rois.append(
+                    ROI(
+                        x=int(region.x),
+                        y=int(region.y),
+                        width=int(region.w),
+                        height=int(region.h),
+                        name=name,
+                    )
+                )
+
         # Add card ROIs for change detection
         for i, roi in enumerate(roi_config.get_hero_card_rois()):
-            rois.append(
-                ROI(
-                    x=int(roi.x),
-                    y=int(roi.y),
-                    width=int(roi.w),
-                    height=int(roi.h),
-                    name=f"hero_card_{i}",
-                )
-            )
+            add_roi(roi, f"hero_card_{i}")
 
         for i, roi in enumerate(roi_config.get_board_card_rois()):
-            rois.append(
-                ROI(
-                    x=int(roi.x),
-                    y=int(roi.y),
-                    width=int(roi.w),
-                    height=int(roi.h),
-                    name=f"board_card_{i}",
-                )
-            )
+            add_roi(roi, f"board_card_{i}")
 
-        # Add pot size ROI
-        if roi_config.pot_size:
-            rois.append(
-                ROI(
-                    x=int(roi_config.pot_size.x),
-                    y=int(roi_config.pot_size.y),
-                    width=int(roi_config.pot_size.w),
-                    height=int(roi_config.pot_size.h),
-                    name="pot_size",
-                )
-            )
+        # Include all visible state that can change HUD decisions.
+        add_roi(roi_config.pot_size, "pot_size")
+        add_roi(roi_config.bet_to_call, "bet_to_call")
+        add_roi(roi_config.hero_stack, "hero_stack")
+        add_roi(roi_config.action_buttons, "action_buttons")
+        for i, roi in enumerate(roi_config.villain_stacks):
+            add_roi(roi, f"villain_stack_{i}")
 
         self._frame_buffer = FrameBuffer(rois)
 
@@ -150,7 +142,7 @@ class PipelineRunner:
         made_hand = made_hand_description(state.hero_cards, state.board_cards)
 
         # Get recommendation only when hero has an actual decision.
-        if state.action_mode == "decision":
+        if state.action_mode == "decision" and parse_status == "OK":
             rec = recommendation(ev, equity, req_eq)
         else:
             rec = "WAIT"

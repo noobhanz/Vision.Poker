@@ -1,11 +1,71 @@
-import cv2
+import numpy as np
+import pytest
 
 from vision.card_detector import CardDetector
+from vision.card_detector import DetectedCard
+from vision.action_reader import ActionState
 from vision.ocr_engine import OCREngine
-from vision.roi_config import load_skin_config
+from vision.roi_config import ROIConfig, ROIRegion, load_skin_config
 from vision.state_parser import StateParser
 
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
 
+
+requires_cv2 = pytest.mark.skipif(not CV2_AVAILABLE, reason="cv2 not installed")
+
+
+class StubCardDetector:
+    def __init__(self):
+        self.cards = iter([
+            DetectedCard("Ah", 0.95, (0, 0, 10, 10)),
+            DetectedCard("Kd", 0.95, (0, 0, 10, 10)),
+        ])
+
+    def detect(self, frame, roi):
+        return [next(self.cards)]
+
+
+class StubOCREngine:
+    def read_number(self, frame, roi):
+        return 1.25
+
+
+def test_visible_call_with_unknown_amount_returns_parse_warning(monkeypatch):
+    parser = StateParser(StubCardDetector(), StubOCREngine())
+    monkeypatch.setattr(
+        parser.action_reader,
+        "read",
+        lambda frame, roi: ActionState(
+            legal_actions=["fold", "call", "raise"],
+            mode="decision",
+            amount_unknown=True,
+            confidence=0.9,
+        ),
+    )
+    config = ROIConfig(
+        hero_card_1=ROIRegion(0, 0, 10, 10),
+        hero_card_2=ROIRegion(10, 0, 10, 10),
+        pot_size=ROIRegion(0, 20, 10, 10),
+        action_buttons=ROIRegion(0, 40, 100, 40),
+    )
+
+    state, status = parser.parse_with_fallback(
+        np.zeros((100, 120, 3), dtype=np.uint8),
+        config,
+        min_confidence=0.6,
+    )
+
+    assert state is not None
+    assert status == "ACTION_AMOUNT_UNKNOWN"
+    assert state.action_amount_unknown is True
+    assert state.bet_to_call == 0.0
+
+
+@requires_cv2
 def test_overlapped_hero_cards_use_unique_assignment():
     """The overlapped preflop fixture should parse as Jc Js, not duplicate Js."""
     frame = cv2.imread("tests/fixtures/sample_frames/pokerstars/pokerstars_020.png")

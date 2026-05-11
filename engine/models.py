@@ -34,6 +34,7 @@ class GameState:
     action_mode: str = "none"  # "decision" | "preselect" | "none"
     legal_actions: list[str] = field(default_factory=list)
     action_amounts: dict[str, float] = field(default_factory=dict)
+    action_amount_unknown: bool = False
     num_players: int = 2
     street: Street = Street.PREFLOP
     is_tournament: bool = False
