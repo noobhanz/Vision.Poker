@@ -56,6 +56,16 @@ python -m tools.fixture_intake \
 
 Use `--dry-run` first when checking a large batch. Imported screenshots without sidecar JSON are marked `reference-only` until they are annotated.
 
+Bootstrap review-only candidate annotations for unannotated frames the parser can read:
+
+```bash
+python -m tools.bootstrap_annotations \
+  --input tests/fixtures/sample_frames/pokerstars \
+  --skin pokerstars_mac_cash
+```
+
+This writes `*.candidate.json` files. They are not loaded by strict replay; review them visually before promoting any candidate to a strict `.json` sidecar.
+
 Run one screenshot, useful when fixing a specific fixture:
 
 ```bash

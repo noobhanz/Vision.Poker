@@ -1,0 +1,28 @@
+{
+  "_candidate": {
+    "image": "pokerstars_034.png",
+    "source": "parser_bootstrap",
+    "parse_status": "OK",
+    "review_required": true
+  },
+  "hero_cards": [
+    "Jc",
+    "Jd"
+  ],
+  "board_cards": [
+    "9c",
+    "2h"
+  ],
+  "pot_size": 0.69,
+  "hero_stack": 1.81,
+  "street": "flop",
+  "action_mode": "decision",
+  "bet_to_call": 0.0,
+  "legal_actions": [
+    "check",
+    "bet"
+  ],
+  "action_amounts": {
+    "bet": 0.02
+  }
+}

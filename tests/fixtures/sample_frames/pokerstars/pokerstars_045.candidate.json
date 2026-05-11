@@ -1,0 +1,17 @@
+{
+  "_candidate": {
+    "image": "pokerstars_045.png",
+    "source": "parser_bootstrap",
+    "parse_status": "OK",
+    "review_required": true
+  },
+  "hero_cards": [
+    "Qh",
+    "2h"
+  ],
+  "board_cards": [],
+  "pot_size": 0.18,
+  "hero_stack": 1.96,
+  "street": "preflop",
+  "action_mode": "none"
+}

@@ -10,11 +10,14 @@ The sidecar JSON currently asserts card identity, board cards, pot size, hero st
 
 Use `tools.fixture_intake` to import new screenshot batches. It assigns stable names, skips duplicate image content, and reports which frames still need sidecar JSON annotations.
 
+Use `tools.bootstrap_annotations` to create review-only `*.candidate.json` files for unannotated screenshots that the parser can read. Candidate files are not strict test expectations until reviewed and promoted to `.json`.
+
 Current fixture status:
 
 - Total screenshots: 55
 - Strict annotated screenshots: 15
 - Reference-only screenshots needing sidecar JSON: 40
+- Review-only candidate sidecars: 20
 - Latest imported range: `pokerstars_023` through `pokerstars_055`
 
 Street distribution in the strict annotated baseline:
