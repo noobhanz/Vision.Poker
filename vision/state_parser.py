@@ -37,6 +37,7 @@ class StateParser:
         self.card_detector = card_detector or CardDetector()
         self.ocr_engine = ocr_engine or OCREngine()
         self.action_reader = ActionReader(self.ocr_engine)
+        self._last_parse_error = "OK"
 
     def _infer_street(self, num_board_cards: int) -> Street:
         """Infer the current street from board card count."""
@@ -155,7 +156,11 @@ class StateParser:
             if candidates or require_all_slots:
                 candidates_by_slot.append(candidates)
 
-        if not candidates_by_slot or any(not candidates for candidates in candidates_by_slot):
+        if not candidates_by_slot:
+            return []
+        if any(not candidates for candidates in candidates_by_slot):
+            if any(candidates for candidates in candidates_by_slot):
+                self._last_parse_error = "INCOMPLETE_HERO_CARDS"
             return []
 
         best_assignment: tuple[DetectedCard, ...] | None = None
@@ -169,6 +174,9 @@ class StateParser:
             if score > best_score:
                 best_assignment = assignment
                 best_score = score
+
+        if best_assignment is None and len(candidates_by_slot) > 1:
+            self._last_parse_error = "DUPLICATE_CARDS"
 
         return list(best_assignment or [])
 
@@ -187,6 +195,8 @@ class StateParser:
         Returns:
             GameState if parsing succeeds, None if critical data missing
         """
+        self._last_parse_error = "OK"
+
         # Detect hero cards
         hero_detections = self._detect_unique_cards(
             frame,
@@ -255,10 +265,15 @@ class StateParser:
 
         if not all_valid:
             # Duplicate cards detected - invalid state
+            self._last_parse_error = "DUPLICATE_CARDS"
             return None
 
         # Must have at least hero cards to proceed
         if len(hero_cards) < 2:
+            if self._last_parse_error == "OK":
+                self._last_parse_error = (
+                    "NO_CARDS_DETECTED" if not hero_cards else "INCOMPLETE_HERO_CARDS"
+                )
             return None
 
         # Calculate confidence
@@ -304,7 +319,7 @@ class StateParser:
         state = self.parse(frame, roi_config)
 
         if state is None:
-            return None, "NO_CARDS_DETECTED"
+            return None, self._last_parse_error
 
         if state.confidence < min_confidence:
             return state, "LOW_CONFIDENCE"
