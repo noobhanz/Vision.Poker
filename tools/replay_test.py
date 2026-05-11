@@ -127,6 +127,7 @@ def load_expected(frame_path: Path) -> Optional[dict]:
 def compare_expected(actual: dict, expected: dict, money_tolerance: float = 0.01) -> dict:
     """Compare parsed state against expected fixture values."""
     mismatches = []
+    checked_fields = []
 
     def expected_value(key: str):
         if key in expected:
@@ -138,20 +139,25 @@ def compare_expected(actual: dict, expected: dict, money_tolerance: float = 0.01
     for key in ["hero_cards", "board_cards", "street", "action_mode", "legal_actions"]:
         expected_item = expected_value(key)
         if expected_item is not None and actual.get(key) != expected_item:
+            checked_fields.append(key)
             mismatches.append({
                 "field": key,
                 "expected": expected_item,
                 "actual": actual.get(key),
             })
+        elif expected_item is not None:
+            checked_fields.append(key)
 
     expected_amounts = expected_value("action_amounts")
     if expected_amounts is not None:
         actual_amounts = actual.get("action_amounts", {})
         for action, expected_amount in expected_amounts.items():
+            field = f"action_amounts.{action}"
+            checked_fields.append(field)
             actual_amount = actual_amounts.get(action)
             if actual_amount is None or abs(float(actual_amount) - float(expected_amount)) > money_tolerance:
                 mismatches.append({
-                    "field": f"action_amounts.{action}",
+                    "field": field,
                     "expected": expected_amount,
                     "actual": actual_amount,
                 })
@@ -160,6 +166,7 @@ def compare_expected(actual: dict, expected: dict, money_tolerance: float = 0.01
         expected_item = expected_value(key)
         if expected_item is None:
             continue
+        checked_fields.append(key)
         actual_item = actual.get(key)
         if actual_item is None or abs(float(actual_item) - float(expected_item)) > money_tolerance:
             mismatches.append({
@@ -171,7 +178,50 @@ def compare_expected(actual: dict, expected: dict, money_tolerance: float = 0.01
     return {
         "passed": not mismatches,
         "mismatches": mismatches,
+        "checked_fields": checked_fields,
     }
+
+
+def summarize_expected_results(results: list[dict]) -> dict:
+    """Summarize fixture comparison accuracy by expected field."""
+    expected_results = [result for result in results if "expected" in result]
+    summary = {
+        "fixtures": {
+            "total": len(expected_results),
+            "passed": sum(
+                1 for result in expected_results
+                if result["expected"].get("passed", False)
+            ),
+        },
+        "fields": {},
+    }
+
+    for result in expected_results:
+        comparison = result["expected"]
+        checked_fields = comparison.get("checked_fields", [])
+        mismatched_fields = {
+            mismatch["field"] for mismatch in comparison.get("mismatches", [])
+        }
+
+        if not checked_fields:
+            checked_fields = sorted(mismatched_fields) or ["state"]
+
+        for field in checked_fields:
+            field_summary = summary["fields"].setdefault(
+                field,
+                {"passed": 0, "total": 0},
+            )
+            field_summary["total"] += 1
+            if field not in mismatched_fields:
+                field_summary["passed"] += 1
+
+    for field_summary in summary["fields"].values():
+        total = field_summary["total"]
+        field_summary["accuracy"] = (
+            field_summary["passed"] / total if total else 0.0
+        )
+
+    return summary
 
 
 def process_frame(
@@ -380,6 +430,7 @@ def main():
         elif expected:
             result["expected"] = {
                 "passed": False,
+                "checked_fields": ["state"],
                 "mismatches": [
                     {
                         "field": "state",
@@ -423,6 +474,8 @@ def main():
     if args.json:
         print(json.dumps(results, indent=2))
 
+    accuracy_summary = summarize_expected_results(results)
+
     if args.strict:
         failures = [
             r for r in results
@@ -442,6 +495,21 @@ def main():
         print(f"Processed: {len(results)} frames")
         print(f"Parsed: {successful}")
         print(f"Failed: {len(results) - successful}")
+
+        annotated = accuracy_summary["fixtures"]["total"]
+        passed = accuracy_summary["fixtures"]["passed"]
+        reference_count = len(results) - annotated
+        if annotated:
+            print()
+            print(f"Expected fixtures: {passed}/{annotated} passed")
+            print(f"Reference-only frames: {reference_count}")
+            print("Field accuracy:")
+            for field, stats in sorted(accuracy_summary["fields"].items()):
+                accuracy = stats["accuracy"] * 100
+                print(
+                    f"  {field}: {stats['passed']}/{stats['total']} "
+                    f"({accuracy:.1f}%)"
+                )
 
 
 if __name__ == "__main__":

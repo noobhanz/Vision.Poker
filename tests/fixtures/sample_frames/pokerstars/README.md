@@ -6,6 +6,8 @@ Frames with visible, reliably parsed VantaBlue hole cards have sidecar JSON file
 
 The sidecar JSON currently asserts card identity, board cards, pot size, hero stack, street, action mode, and visible red-button actions where available. Checkbox-only pre-action prompts are recognized as `preselect`; they do not produce betting recommendations.
 
+`tools.replay_test` prints per-field accuracy for annotated fixtures. Unannotated screenshots remain useful visual references, but they are excluded from the accuracy denominator.
+
 Street distribution in the screenshot batch:
 
 - Preflop/no-board screenshots: 9 total (`pokerstars_001`, `005`, `006`, `008`, `009`, `017`, `019`, `020`, `021`)

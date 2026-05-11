@@ -33,6 +33,8 @@ python -m tools.replay_test \
   --strict
 ```
 
+The replay summary reports expected fixture pass rate plus field-level accuracy for cards, board, pot, stack, street, and visible action controls. Reference-only screenshots without sidecar JSON are processed, but excluded from accuracy percentages.
+
 Run one screenshot, useful when fixing a specific fixture:
 
 ```bash

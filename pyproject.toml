@@ -44,6 +44,5 @@ where = ["."]
 include = ["capture*", "vision*", "engine*", "overlay*", "pipeline*", "config*", "tools*"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
