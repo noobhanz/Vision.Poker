@@ -1,11 +1,11 @@
 {
   "input": "tests/fixtures/sample_frames/pokerstars",
   "skin": "pokerstars_mac_cash",
-  "parser_commit": "27798525461735b4ab442ffb2895635f17d2875c",
+  "parser_commit": "788b9eea5de7b8a278d4f7d55ea5374d92d78bab",
   "counts": {
-    "written": 20,
+    "written": 10,
     "skipped": 15,
-    "failed": 20
+    "failed": 30
   },
   "written": [
     {
@@ -64,60 +64,6 @@
       "board_cards": []
     },
     {
-      "file": "pokerstars_031.png",
-      "candidate": "pokerstars_031.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "6h",
-        "5h"
-      ],
-      "board_cards": [
-        "7h"
-      ]
-    },
-    {
-      "file": "pokerstars_032.png",
-      "candidate": "pokerstars_032.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "Qh",
-        "Jd"
-      ],
-      "board_cards": [
-        "7h",
-        "9c"
-      ]
-    },
-    {
-      "file": "pokerstars_033.png",
-      "candidate": "pokerstars_033.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "Qh",
-        "Jd"
-      ],
-      "board_cards": [
-        "9c"
-      ]
-    },
-    {
-      "file": "pokerstars_034.png",
-      "candidate": "pokerstars_034.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "Jc",
-        "Jd"
-      ],
-      "board_cards": [
-        "9c",
-        "2h"
-      ]
-    },
-    {
       "file": "pokerstars_035.png",
       "candidate": "pokerstars_035.candidate.json",
       "status": "OK",
@@ -127,73 +73,6 @@
         "Td"
       ],
       "board_cards": []
-    },
-    {
-      "file": "pokerstars_036.png",
-      "candidate": "pokerstars_036.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "6h",
-        "5h"
-      ],
-      "board_cards": [
-        "Jc",
-        "4h"
-      ]
-    },
-    {
-      "file": "pokerstars_037.png",
-      "candidate": "pokerstars_037.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "6h",
-        "5h"
-      ],
-      "board_cards": [
-        "2h"
-      ]
-    },
-    {
-      "file": "pokerstars_038.png",
-      "candidate": "pokerstars_038.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "6h",
-        "5h"
-      ],
-      "board_cards": [
-        "As"
-      ]
-    },
-    {
-      "file": "pokerstars_039.png",
-      "candidate": "pokerstars_039.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "6h",
-        "6s"
-      ],
-      "board_cards": [
-        "4h"
-      ]
-    },
-    {
-      "file": "pokerstars_040.png",
-      "candidate": "pokerstars_040.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "6h",
-        "6s"
-      ],
-      "board_cards": [
-        "4h",
-        "Ah"
-      ]
     },
     {
       "file": "pokerstars_043.png",
@@ -227,19 +106,6 @@
         "2h"
       ],
       "board_cards": []
-    },
-    {
-      "file": "pokerstars_046.png",
-      "candidate": "pokerstars_046.candidate.json",
-      "status": "OK",
-      "street": "flop",
-      "hero_cards": [
-        "Qh",
-        "2h"
-      ],
-      "board_cards": [
-        "4h"
-      ]
     },
     {
       "file": "pokerstars_047.png",
@@ -357,12 +223,52 @@
       "status": "Parse failed: INCOMPLETE_HERO_CARDS"
     },
     {
+      "file": "pokerstars_031.png",
+      "status": "invalid_board_card_count_1"
+    },
+    {
+      "file": "pokerstars_032.png",
+      "status": "invalid_board_card_count_2"
+    },
+    {
+      "file": "pokerstars_033.png",
+      "status": "invalid_board_card_count_1"
+    },
+    {
+      "file": "pokerstars_034.png",
+      "status": "invalid_board_card_count_2"
+    },
+    {
+      "file": "pokerstars_036.png",
+      "status": "invalid_board_card_count_2"
+    },
+    {
+      "file": "pokerstars_037.png",
+      "status": "invalid_board_card_count_1"
+    },
+    {
+      "file": "pokerstars_038.png",
+      "status": "invalid_board_card_count_1"
+    },
+    {
+      "file": "pokerstars_039.png",
+      "status": "invalid_board_card_count_1"
+    },
+    {
+      "file": "pokerstars_040.png",
+      "status": "invalid_board_card_count_2"
+    },
+    {
       "file": "pokerstars_041.png",
       "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_042.png",
       "status": "NO_ACTIVE_HERO_CARDS"
+    },
+    {
+      "file": "pokerstars_046.png",
+      "status": "invalid_board_card_count_1"
     },
     {
       "file": "pokerstars_048.png",

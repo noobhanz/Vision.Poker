@@ -17,7 +17,7 @@ Current fixture status:
 - Total screenshots: 55
 - Strict annotated screenshots: 15
 - Reference-only screenshots needing sidecar JSON: 40
-- Review-only candidate sidecars: 20
+- Review-only candidate sidecars: 10
 - Latest imported range: `pokerstars_023` through `pokerstars_055`
 
 Street distribution in the strict annotated baseline:

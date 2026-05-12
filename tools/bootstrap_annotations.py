@@ -18,6 +18,8 @@ from vision.state_parser import StateParser
 
 from .fixture_intake import image_files
 
+VALID_BOARD_COUNTS = {0, 3, 4, 5}
+
 
 def candidate_path_for(frame_path: Path) -> Path:
     """Return the non-strict candidate sidecar path for an image."""
@@ -30,6 +32,18 @@ def has_strict_annotation(frame_path: Path) -> bool:
         frame_path.with_suffix(".json").exists()
         or frame_path.with_suffix(".expected.json").exists()
     )
+
+
+def candidate_rejection_reason(state_dict: dict, status: str) -> Optional[str]:
+    """Return why parser output is not safe enough to become a candidate."""
+    if status != "OK":
+        return f"parse_status_{status}"
+
+    board_count = len(state_dict.get("board_cards", []))
+    if board_count not in VALID_BOARD_COUNTS:
+        return f"invalid_board_card_count_{board_count}"
+
+    return None
 
 
 def current_git_commit() -> Optional[str]:
@@ -129,15 +143,28 @@ def bootstrap_candidates(
         )
 
         if state is None:
+            if overwrite and candidate_path.exists():
+                candidate_path.unlink()
             failed.append({
                 "file": frame_path.name,
                 "status": status,
             })
             continue
 
+        state_dict = state_to_dict(state)
+        rejection_reason = candidate_rejection_reason(state_dict, status)
+        if rejection_reason:
+            if overwrite and candidate_path.exists():
+                candidate_path.unlink()
+            failed.append({
+                "file": frame_path.name,
+                "status": rejection_reason,
+            })
+            continue
+
         candidate = candidate_from_state(
             frame_path.name,
-            state_to_dict(state),
+            state_dict,
             status,
             parser_commit=parser_commit,
         )

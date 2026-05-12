@@ -3,6 +3,7 @@ from pathlib import Path
 from tools.bootstrap_annotations import (
     candidate_from_state,
     candidate_path_for,
+    candidate_rejection_reason,
     has_strict_annotation,
 )
 
@@ -67,3 +68,38 @@ def test_candidate_payload_can_record_parser_commit():
     )
 
     assert candidate["_candidate"]["parser_commit"] == "abc123"
+
+
+def test_candidate_rejection_rejects_impossible_board_counts():
+    state = {
+        "board_cards": ["Ah", "Kd"],
+    }
+
+    assert candidate_rejection_reason(state, "OK") == "invalid_board_card_count_2"
+
+
+def test_candidate_rejection_rejects_non_ok_parse_status():
+    state = {
+        "board_cards": [],
+    }
+
+    assert (
+        candidate_rejection_reason(state, "LOW_CONFIDENCE")
+        == "parse_status_LOW_CONFIDENCE"
+    )
+
+
+def test_candidate_rejection_accepts_real_streets():
+    assert candidate_rejection_reason({"board_cards": []}, "OK") is None
+    assert candidate_rejection_reason({"board_cards": ["Ah", "Kd", "Qs"]}, "OK") is None
+    assert (
+        candidate_rejection_reason({"board_cards": ["Ah", "Kd", "Qs", "2c"]}, "OK")
+        is None
+    )
+    assert (
+        candidate_rejection_reason(
+            {"board_cards": ["Ah", "Kd", "Qs", "2c", "3d"]},
+            "OK",
+        )
+        is None
+    )
