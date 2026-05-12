@@ -149,6 +149,62 @@ class TestCardDetectorTemplate:
         assert len(result) == 1
         assert result[0].card == "Ah"
 
+    def test_rank_suit_diagnostics_explain_known_slot(self, tmp_path):
+        """Diagnostics expose top labels, confidence, and acceptance status."""
+        rank_dir = tmp_path / "ranks"
+        suit_dir = tmp_path / "suits"
+        rank_dir.mkdir()
+        suit_dir.mkdir()
+
+        rank_template = np.zeros((10, 10), dtype=np.uint8)
+        np.fill_diagonal(rank_template, 255)
+
+        suit_template = np.zeros((10, 10), dtype=np.uint8)
+        np.fill_diagonal(np.fliplr(suit_template), 255)
+
+        cv2.imwrite(str(rank_dir / "A.png"), rank_template)
+        cv2.imwrite(str(suit_dir / "h.png"), suit_template)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[14:24, 14:24] = cv2.cvtColor(rank_template, cv2.COLOR_GRAY2BGR)
+        frame[34:44, 14:24] = cv2.cvtColor(suit_template, cv2.COLOR_GRAY2BGR)
+
+        detector = CardDetector(template_dir=tmp_path)
+        diagnostic = detector.rank_suit_diagnostics(
+            frame,
+            (10, 10, 60, 80),
+            threshold=0.5,
+            top_n=3,
+        )
+
+        assert diagnostic["accepted"] is True
+        assert diagnostic["accepted_card"] == "Ah"
+        assert diagnostic["status"] == "ACCEPTED"
+        assert diagnostic["rank_candidates"][0]["label"] == "A"
+        assert diagnostic["suit_candidates"][0]["label"] == "h"
+
+    def test_full_card_template_diagnostics_explain_known_slot(self, tmp_path):
+        """Full-card diagnostics expose the template candidates used in fallback."""
+        card_template = np.zeros((20, 20, 3), dtype=np.uint8)
+        card_template[2:18, 2:18] = 255
+        cv2.imwrite(str(tmp_path / "Ah.png"), card_template)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[10:30, 10:30] = card_template
+
+        detector = CardDetector(template_dir=tmp_path)
+        diagnostic = detector.full_card_template_diagnostics(
+            frame,
+            (10, 10, 60, 80),
+            threshold=0.8,
+            top_n=3,
+        )
+
+        assert diagnostic["accepted"] is True
+        assert diagnostic["accepted_card"] == "Ah"
+        assert diagnostic["status"] == "ACCEPTED"
+        assert diagnostic["card_candidates"][0]["label"] == "Ah"
+
     def test_rank_suit_fallback_runs_when_full_templates_are_incomplete(self, tmp_path):
         """A missing full-card label can still classify through rank/suit templates."""
         rank_dir = tmp_path / "ranks"

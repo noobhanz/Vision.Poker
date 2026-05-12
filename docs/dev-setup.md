@@ -85,6 +85,16 @@ python -m tools.debug_frame \
   --output /tmp/pokerstars_020_debug.png
 ```
 
+Write per-slot card diagnostics with crops, top rank/suit guesses, confidence,
+and accept/reject status:
+
+```bash
+python -m tools.card_slot_diagnostics \
+  --input tests/fixtures/sample_frames/pokerstars \
+  --skin pokerstars_mac_cash \
+  --output /tmp/card_slot_diagnostics
+```
+
 ## Template Refresh
 
 If fixture annotations change, regenerate card and numeric OCR templates from the annotated screenshots:

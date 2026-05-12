@@ -183,6 +183,68 @@ class CardDetector:
 
         return best_label, best_score
 
+    def _rank_suit_regions(self, crop: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Return the rank and suit subregions from an isolated card crop."""
+        h, w = crop.shape[:2]
+        rank_region = crop[
+            int(h * 0.04) : int(h * 0.30),
+            int(w * 0.04) : int(w * 0.38),
+        ]
+        suit_region = crop[
+            int(h * 0.24) : int(h * 0.52),
+            int(w * 0.04) : int(w * 0.38),
+        ]
+        return rank_region, suit_region
+
+    def _template_scores(
+        self,
+        image: np.ndarray,
+        templates: dict[str, np.ndarray],
+    ) -> list[tuple[str, float]]:
+        """Return template scores sorted best-first for diagnostic output."""
+        import cv2
+
+        scores: list[tuple[str, float]] = []
+        if image.size == 0:
+            return scores
+
+        for label, template in templates.items():
+            search_template = template
+            if (
+                template.shape[0] > image.shape[0]
+                or template.shape[1] > image.shape[1]
+            ):
+                search_template = cv2.resize(
+                    template,
+                    (image.shape[1], image.shape[0]),
+                    interpolation=cv2.INTER_AREA,
+                )
+
+            result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, _ = cv2.minMaxLoc(result)
+            scores.append((label, float(max_val)))
+
+        return sorted(scores, key=lambda item: item[1], reverse=True)
+
+    def _template_max_score(self, image: np.ndarray, template: np.ndarray) -> float:
+        """Return the best match score for one template against one image."""
+        import cv2
+
+        if image.size == 0:
+            return 0.0
+
+        search_template = template
+        if template.shape[0] > image.shape[0] or template.shape[1] > image.shape[1]:
+            search_template = cv2.resize(
+                template,
+                (image.shape[1], image.shape[0]),
+                interpolation=cv2.INTER_AREA,
+            )
+
+        result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
+        _, max_val, _, _ = cv2.minMaxLoc(result)
+        return float(max_val)
+
     def _classify_rank_suit_from_crop(
         self,
         crop: np.ndarray,
@@ -193,16 +255,7 @@ class CardDetector:
             return None
 
         h, w = crop.shape[:2]
-
-        # PokerStars prints the rank and suit vertically in the top-left card corner.
-        rank_region = crop[
-            int(h * 0.04) : int(h * 0.30),
-            int(w * 0.04) : int(w * 0.38),
-        ]
-        suit_region = crop[
-            int(h * 0.24) : int(h * 0.52),
-            int(w * 0.04) : int(w * 0.38),
-        ]
+        rank_region, suit_region = self._rank_suit_regions(crop)
 
         rank_prepared = self._preprocess_for_template(rank_region)
         suit_prepared = self._preprocess_for_template(suit_region)
@@ -250,6 +303,152 @@ class CardDetector:
             return []
 
         return [detected]
+
+    def rank_suit_diagnostics(
+        self,
+        frame: np.ndarray,
+        roi: tuple[int, int, int, int],
+        threshold: float = 0.72,
+        top_n: int = 5,
+    ) -> dict:
+        """
+        Explain fixed-slot rank/suit classification for one card ROI.
+
+        The returned dict is intentionally JSON-friendly so diagnostic tools can
+        store exactly what the recognizer saw, which labels competed, and why a
+        slot was accepted or rejected.
+        """
+        self._load_rank_suit_templates()
+
+        x, y, w, h = roi
+        result = {
+            "roi": {"x": int(x), "y": int(y), "w": int(w), "h": int(h)},
+            "threshold": threshold,
+            "top_n": top_n,
+            "accepted": False,
+            "accepted_card": None,
+            "confidence": 0.0,
+            "rank_candidates": [],
+            "suit_candidates": [],
+            "rank_margin": None,
+            "suit_margin": None,
+            "status": "NO_TEMPLATES",
+        }
+
+        if not self._rank_templates or not self._suit_templates:
+            return result
+
+        if x < 0 or y < 0 or w <= 0 or h <= 0:
+            result["status"] = "INVALID_ROI"
+            return result
+        if x + w > frame.shape[1] or y + h > frame.shape[0]:
+            result["status"] = "ROI_OUT_OF_BOUNDS"
+            return result
+
+        crop = frame[y : y + h, x : x + w]
+        if crop.size == 0:
+            result["status"] = "EMPTY_CROP"
+            return result
+
+        rank_region, suit_region = self._rank_suit_regions(crop)
+        rank_prepared = self._preprocess_for_template(rank_region)
+        suit_prepared = self._preprocess_for_template(suit_region)
+
+        rank_scores = self._template_scores(rank_prepared, self._rank_templates)
+        suit_scores = self._template_scores(suit_prepared, self._suit_templates)
+        result["rank_candidates"] = [
+            {"label": label, "score": round(score, 4)}
+            for label, score in rank_scores[:top_n]
+        ]
+        result["suit_candidates"] = [
+            {"label": label, "score": round(score, 4)}
+            for label, score in suit_scores[:top_n]
+        ]
+
+        if len(rank_scores) >= 2:
+            result["rank_margin"] = round(rank_scores[0][1] - rank_scores[1][1], 4)
+        if len(suit_scores) >= 2:
+            result["suit_margin"] = round(suit_scores[0][1] - suit_scores[1][1], 4)
+
+        if not rank_scores or not suit_scores:
+            result["status"] = "NO_MATCHES"
+            return result
+
+        rank, rank_score = rank_scores[0]
+        suit, suit_score = suit_scores[0]
+        confidence = min(rank_score, suit_score)
+        result["accepted_card"] = f"{rank}{suit}"
+        result["confidence"] = round(confidence, 4)
+        result["accepted"] = confidence >= threshold
+        result["status"] = "ACCEPTED" if confidence >= threshold else "LOW_CONFIDENCE"
+        return result
+
+    def full_card_template_diagnostics(
+        self,
+        frame: np.ndarray,
+        roi: tuple[int, int, int, int],
+        threshold: float = 0.8,
+        top_n: int = 5,
+    ) -> dict:
+        """
+        Explain full-card template matching for one ROI.
+
+        This complements rank/suit diagnostics because the production fallback
+        can succeed through full-card variants before rank/suit matching runs.
+        """
+        self._load_templates()
+
+        x, y, w, h = roi
+        result = {
+            "roi": {"x": int(x), "y": int(y), "w": int(w), "h": int(h)},
+            "threshold": threshold,
+            "top_n": top_n,
+            "accepted": False,
+            "accepted_card": None,
+            "confidence": 0.0,
+            "card_candidates": [],
+            "score_margin": None,
+            "status": "NO_TEMPLATES",
+        }
+
+        if not self._templates:
+            return result
+
+        if x < 0 or y < 0 or w <= 0 or h <= 0:
+            result["status"] = "INVALID_ROI"
+            return result
+        if x + w > frame.shape[1] or y + h > frame.shape[0]:
+            result["status"] = "ROI_OUT_OF_BOUNDS"
+            return result
+
+        crop = frame[y : y + h, x : x + w]
+        if crop.size == 0:
+            result["status"] = "EMPTY_CROP"
+            return result
+
+        scores = []
+        for card, templates in self._templates.items():
+            best = max(self._template_max_score(crop, template) for template in templates)
+            scores.append((card, best))
+
+        scores = sorted(scores, key=lambda item: item[1], reverse=True)
+        result["card_candidates"] = [
+            {"label": label, "score": round(score, 4)}
+            for label, score in scores[:top_n]
+        ]
+
+        if len(scores) >= 2:
+            result["score_margin"] = round(scores[0][1] - scores[1][1], 4)
+        if not scores:
+            result["status"] = "NO_MATCHES"
+            return result
+
+        card, confidence = scores[0]
+        result["accepted_card"] = card
+        result["confidence"] = round(confidence, 4)
+        result["accepted"] = confidence >= threshold
+        result["status"] = "ACCEPTED" if confidence >= threshold else "LOW_CONFIDENCE"
+        return result
 
     def detect_yolo(
         self,
