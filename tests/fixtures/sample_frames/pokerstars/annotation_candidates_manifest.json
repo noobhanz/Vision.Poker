@@ -1,7 +1,7 @@
 {
   "input": "tests/fixtures/sample_frames/pokerstars",
   "skin": "pokerstars_mac_cash",
-  "parser_commit": "788b9eea5de7b8a278d4f7d55ea5374d92d78bab",
+  "parser_commit": "0463452fe14a852070ddeadbe9ca8feee17bf451",
   "counts": {
     "written": 10,
     "skipped": 15,
@@ -224,39 +224,39 @@
     },
     {
       "file": "pokerstars_031.png",
-      "status": "invalid_board_card_count_1"
+      "status": "partial_board_detected_1"
     },
     {
       "file": "pokerstars_032.png",
-      "status": "invalid_board_card_count_2"
+      "status": "partial_board_detected_2"
     },
     {
       "file": "pokerstars_033.png",
-      "status": "invalid_board_card_count_1"
+      "status": "partial_board_detected_1"
     },
     {
       "file": "pokerstars_034.png",
-      "status": "invalid_board_card_count_2"
+      "status": "partial_board_detected_2"
     },
     {
       "file": "pokerstars_036.png",
-      "status": "invalid_board_card_count_2"
+      "status": "partial_board_detected_2"
     },
     {
       "file": "pokerstars_037.png",
-      "status": "invalid_board_card_count_1"
+      "status": "partial_board_detected_1"
     },
     {
       "file": "pokerstars_038.png",
-      "status": "invalid_board_card_count_1"
+      "status": "partial_board_detected_1"
     },
     {
       "file": "pokerstars_039.png",
-      "status": "invalid_board_card_count_1"
+      "status": "partial_board_detected_1"
     },
     {
       "file": "pokerstars_040.png",
-      "status": "invalid_board_card_count_2"
+      "status": "partial_board_detected_2"
     },
     {
       "file": "pokerstars_041.png",
@@ -268,7 +268,7 @@
     },
     {
       "file": "pokerstars_046.png",
-      "status": "invalid_board_card_count_1"
+      "status": "partial_board_detected_1"
     },
     {
       "file": "pokerstars_048.png",

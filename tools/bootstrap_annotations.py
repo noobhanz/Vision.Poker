@@ -41,7 +41,7 @@ def candidate_rejection_reason(state_dict: dict, status: str) -> Optional[str]:
 
     board_count = len(state_dict.get("board_cards", []))
     if board_count not in VALID_BOARD_COUNTS:
-        return f"invalid_board_card_count_{board_count}"
+        return f"partial_board_detected_{board_count}"
 
     return None
 

@@ -70,12 +70,12 @@ def test_candidate_payload_can_record_parser_commit():
     assert candidate["_candidate"]["parser_commit"] == "abc123"
 
 
-def test_candidate_rejection_rejects_impossible_board_counts():
+def test_candidate_rejection_rejects_partial_board_detections():
     state = {
         "board_cards": ["Ah", "Kd"],
     }
 
-    assert candidate_rejection_reason(state, "OK") == "invalid_board_card_count_2"
+    assert candidate_rejection_reason(state, "OK") == "partial_board_detected_2"
 
 
 def test_candidate_rejection_rejects_non_ok_parse_status():
