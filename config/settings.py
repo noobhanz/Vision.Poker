@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     monte_carlo_n: int = 5000
     yolo_model_path: str = "models/cards.pt"  # path to fine-tuned YOLOv8
     confidence_threshold: float = 0.75
+    stable_frames_required: int = 2  # repeated active parses before HUD update
     hud_hotkey: str = "F9"
     hud_opacity: float = 0.88
     hud_position: str = "top-right"  # top-left | top-right | bottom-right
