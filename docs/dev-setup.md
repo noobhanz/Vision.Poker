@@ -66,6 +66,21 @@ python -m tools.video_to_frames \
   --prefix pokerstars_live_001
 ```
 
+Create a compact live-regression scoreboard from an extracted sequence:
+
+```bash
+python -m tools.live_regression_report \
+  --input tests/fixtures/live_sequences/pokerstars_live_001 \
+  --skin pokerstars_mac_cash \
+  --stable-frames 2 \
+  --monte-carlo 20 \
+  --output /tmp/pokerstars_live_regression_summary.json
+```
+
+Use this report as the live-readiness baseline. Track `published_ok`,
+`published_warnings`, `suspicious_published_ok_count`, and the top warning
+statuses before and after recognizer changes.
+
 Bootstrap review-only candidate annotations for unannotated frames the parser can read:
 
 ```bash
