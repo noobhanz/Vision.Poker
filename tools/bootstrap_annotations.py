@@ -7,6 +7,7 @@ does not load them. Review them visually before promoting any file to ``.json``.
 
 import argparse
 import json
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -31,12 +32,33 @@ def has_strict_annotation(frame_path: Path) -> bool:
     )
 
 
-def candidate_from_state(frame_name: str, state_dict: dict, status: str) -> dict:
+def current_git_commit() -> Optional[str]:
+    """Return the current git commit, if available."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return result.stdout.strip() or None
+
+
+def candidate_from_state(
+    frame_name: str,
+    state_dict: dict,
+    status: str,
+    *,
+    parser_commit: Optional[str] = None,
+) -> dict:
     """Create a reviewable candidate annotation payload from parsed state."""
     payload = {
         "_candidate": {
             "image": frame_name,
             "source": "parser_bootstrap",
+            "schema_version": 1,
             "parse_status": status,
             "review_required": True,
         },
@@ -47,6 +69,9 @@ def candidate_from_state(frame_name: str, state_dict: dict, status: str) -> dict
         "street": state_dict["street"],
         "action_mode": state_dict["action_mode"],
     }
+
+    if parser_commit:
+        payload["_candidate"]["parser_commit"] = parser_commit
 
     if state_dict.get("bet_to_call", 0) > 0 or state_dict.get("action_mode") == "decision":
         payload["bet_to_call"] = state_dict["bet_to_call"]
@@ -70,6 +95,7 @@ def bootstrap_candidates(
 
     roi_config = load_skin_config(skin)
     state_parser = StateParser(CardDetector(), OCREngine())
+    parser_commit = current_git_commit()
 
     frame_files = image_files(input_path)
     written = []
@@ -109,7 +135,12 @@ def bootstrap_candidates(
             })
             continue
 
-        candidate = candidate_from_state(frame_path.name, state_to_dict(state), status)
+        candidate = candidate_from_state(
+            frame_path.name,
+            state_to_dict(state),
+            status,
+            parser_commit=parser_commit,
+        )
         with candidate_path.open("w") as f:
             json.dump(candidate, f, indent=2)
             f.write("\n")
@@ -126,6 +157,7 @@ def bootstrap_candidates(
     return {
         "input": str(input_path),
         "skin": skin,
+        "parser_commit": parser_commit,
         "counts": {
             "written": len(written),
             "skipped": len(skipped),

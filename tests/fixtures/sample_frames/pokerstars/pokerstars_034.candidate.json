@@ -2,8 +2,10 @@
   "_candidate": {
     "image": "pokerstars_034.png",
     "source": "parser_bootstrap",
+    "schema_version": 1,
     "parse_status": "OK",
-    "review_required": true
+    "review_required": true,
+    "parser_commit": "27798525461735b4ab442ffb2895635f17d2875c"
   },
   "hero_cards": [
     "Jc",

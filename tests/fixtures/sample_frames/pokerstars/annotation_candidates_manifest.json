@@ -1,6 +1,7 @@
 {
   "input": "tests/fixtures/sample_frames/pokerstars",
   "skin": "pokerstars_mac_cash",
+  "parser_commit": "27798525461735b4ab442ffb2895635f17d2875c",
   "counts": {
     "written": 20,
     "skipped": 15,
@@ -317,83 +318,83 @@
   "failed": [
     {
       "file": "pokerstars_002.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_003.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_004.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_007.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_014.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_015.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_016.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_023.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_027.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_030.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "Parse failed: INCOMPLETE_HERO_CARDS"
     },
     {
       "file": "pokerstars_041.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_042.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_048.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_049.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_050.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_051.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_052.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_053.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "Parse failed: INCOMPLETE_HERO_CARDS"
     },
     {
       "file": "pokerstars_054.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "NO_ACTIVE_HERO_CARDS"
     },
     {
       "file": "pokerstars_055.png",
-      "status": "Parse failed: NO_CARDS_DETECTED"
+      "status": "Parse failed: INCOMPLETE_HERO_CARDS"
     }
   ]
 }

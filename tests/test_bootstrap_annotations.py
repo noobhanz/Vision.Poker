@@ -41,8 +41,29 @@ def test_candidate_payload_keeps_review_metadata():
     candidate = candidate_from_state("pokerstars_023.png", state, "OK")
 
     assert candidate["_candidate"]["review_required"] is True
+    assert candidate["_candidate"]["schema_version"] == 1
     assert candidate["hero_cards"] == ["Ah", "Kh"]
     assert candidate["board_cards"] == ["2h", "7h", "Qs"]
     assert candidate["bet_to_call"] == 0.05
     assert candidate["legal_actions"] == ["fold", "call", "raise"]
     assert candidate["action_amounts"] == {"call": 0.05, "raise": 0.15}
+
+
+def test_candidate_payload_can_record_parser_commit():
+    state = {
+        "hero_cards": ["Ah", "Kh"],
+        "board_cards": [],
+        "pot_size": 0.03,
+        "hero_stack": 1.75,
+        "street": "preflop",
+        "action_mode": "preselect",
+    }
+
+    candidate = candidate_from_state(
+        "pokerstars_023.png",
+        state,
+        "OK",
+        parser_commit="abc123",
+    )
+
+    assert candidate["_candidate"]["parser_commit"] == "abc123"
