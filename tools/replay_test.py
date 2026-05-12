@@ -21,7 +21,7 @@ import numpy as np
 from engine.draws import classify_draw, count_outs, made_hand_description
 from engine.equity import calculate_equity
 from engine.ev import ev_call, ev_fold, recommendation
-from engine.models import GameState, Metrics
+from engine.models import DrawType, GameState, Metrics
 from engine.pot_odds import pot_odds, required_equity
 from pipeline.stability import StateStabilizer
 from vision.card_detector import CardDetector
@@ -36,6 +36,23 @@ def compute_metrics(
     parse_status: str = "OK",
 ) -> Metrics:
     """Compute metrics from game state."""
+    if parse_status != "OK":
+        return Metrics(
+            equity=0.0,
+            pot_odds=0.0,
+            required_equity=0.0,
+            ev_call=0.0,
+            ev_fold=0.0,
+            outs=0,
+            draw_type=DrawType.NONE,
+            made_hand_rank="",
+            recommendation="WAIT",
+            confidence=state.confidence,
+            street=state.street,
+            parse_status=parse_status,
+            action_mode=state.action_mode,
+        )
+
     equity = calculate_equity(
         hero=state.hero_cards,
         board=state.board_cards,

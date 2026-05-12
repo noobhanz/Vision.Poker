@@ -161,6 +161,19 @@ class CardDetector:
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if len(crop.shape) == 3 else crop
         return float((gray > 180).mean()) >= self.min_card_white_ratio
 
+    def has_card_like_pixels(
+        self,
+        frame: np.ndarray,
+        roi: tuple[int, int, int, int],
+    ) -> bool:
+        """Return whether a frame ROI looks occupied by a card."""
+        x, y, w, h = roi
+        if x < 0 or y < 0 or w <= 0 or h <= 0:
+            return False
+        if x + w > frame.shape[1] or y + h > frame.shape[0]:
+            return False
+        return self._has_card_like_pixels(frame[y : y + h, x : x + w])
+
     def _best_template_match(
         self,
         image: np.ndarray,

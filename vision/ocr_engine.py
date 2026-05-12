@@ -115,15 +115,51 @@ class OCREngine:
         # Remove thousands separators and parse
         text = text.replace(",", "")
 
+        # PokerStars' small white dollar sign can be segmented like an "8" by
+        # the lightweight template OCR. Normalize common forms such as
+        # "$0.06" -> "8006", "$1.98" -> "81.98", and "$0.04" -> "80.04".
+        if text.startswith("8") and len(text) >= 3:
+            corrected = self._parse_false_currency_prefix(text[1:])
+            if corrected is not None:
+                return corrected
+
         # Extract the numeric portion
         num_match = re.search(r"[\d.]+", text)
         if num_match:
             try:
-                return float(num_match.group())
+                token = num_match.group()
+                money_like = self._parse_compact_cents(token)
+                if money_like is not None:
+                    return money_like
+                return float(token)
             except ValueError:
                 pass
 
         return None
+
+    def _parse_false_currency_prefix(self, text: str) -> Optional[float]:
+        """Parse money text after dropping a false leading currency glyph."""
+        if not text:
+            return None
+
+        if "." in text:
+            try:
+                return float(text)
+            except ValueError:
+                return None
+
+        if not text.isdigit() or len(text) < 3 or len(text) > 4:
+            return None
+
+        return int(text) / 100
+
+    def _parse_compact_cents(self, text: str) -> Optional[float]:
+        """Parse compact cent strings such as 006 as 0.06."""
+        if not text or "." in text or not text.isdigit():
+            return None
+        if len(text) < 3 or len(text) > 4 or not text.startswith("0"):
+            return None
+        return int(text) / 100
 
     def read_number(
         self,

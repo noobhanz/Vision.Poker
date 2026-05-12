@@ -45,6 +45,28 @@ def test_idle_metrics_clear_recommendation_without_active_hero_cards():
     assert metrics.equity == 0.0
 
 
+def test_compute_metrics_is_neutral_for_warning_status():
+    runner = PipelineRunner.__new__(PipelineRunner)
+
+    metrics = runner._compute_metrics(
+        GameState(
+            hero_cards=["Ah", "Kh"],
+            board_cards=[],
+            pot_size=20.0,
+            bet_to_call=0.0,
+            hero_stack=2.0,
+            action_mode="decision",
+            confidence=0.8,
+        ),
+        "BOARD_CARDS_UNREADABLE",
+    )
+
+    assert metrics.recommendation == "WAIT"
+    assert metrics.parse_status == "BOARD_CARDS_UNREADABLE"
+    assert metrics.equity == 0.0
+    assert metrics.ev_call == 0.0
+
+
 class StableParser:
     def __init__(self, state):
         self.state = state

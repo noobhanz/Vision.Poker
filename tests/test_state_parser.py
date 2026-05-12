@@ -107,6 +107,24 @@ class PartialBoardDetector:
             return []
 
 
+class VisibleUnreadableBoardDetector:
+    def __init__(self):
+        self.calls = 0
+
+    def detect(self, frame, roi):
+        self.calls += 1
+        if self.calls == 1:
+            return [DetectedCard("Ah", 0.95, (0, 0, 10, 10))]
+        if self.calls == 2:
+            return [DetectedCard("Kd", 0.95, (0, 0, 10, 10))]
+        return []
+
+    def has_card_like_pixels(self, frame, roi):
+        self.calls += 0
+        x, y, w, h = roi
+        return x >= 20
+
+
 def test_parse_with_fallback_reports_no_active_hero_cards_for_empty_hero_rois():
     parser = StateParser(NoHeroCardsDetector(), StubOCREngine())
     config = ROIConfig(
@@ -175,6 +193,28 @@ def test_parse_with_fallback_warns_on_partial_board_detection():
     assert status == "PARTIAL_BOARD_DETECTED_1"
     assert state.hero_cards == ["Ah", "Kd"]
     assert state.board_cards == ["2c"]
+
+
+def test_parse_with_fallback_warns_when_visible_board_is_unreadable():
+    parser = StateParser(VisibleUnreadableBoardDetector(), StubOCREngine())
+    config = ROIConfig(
+        hero_card_1=ROIRegion(0, 0, 10, 10),
+        hero_card_2=ROIRegion(10, 0, 10, 10),
+        board_card_1=ROIRegion(20, 0, 10, 10),
+        board_card_2=ROIRegion(30, 0, 10, 10),
+        board_card_3=ROIRegion(40, 0, 10, 10),
+        pot_size=ROIRegion(0, 20, 10, 10),
+    )
+
+    state, status = parser.parse_with_fallback(
+        np.zeros((100, 120, 3), dtype=np.uint8),
+        config,
+    )
+
+    assert state is not None
+    assert status == "BOARD_CARDS_UNREADABLE"
+    assert state.hero_cards == ["Ah", "Kd"]
+    assert state.board_cards == []
 
 
 @requires_cv2

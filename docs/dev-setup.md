@@ -56,6 +56,16 @@ python -m tools.fixture_intake \
 
 Use `--dry-run` first when checking a large batch. Imported screenshots without sidecar JSON are marked `reference-only` until they are annotated.
 
+Extract ordered frames from a screen recording:
+
+```bash
+python -m tools.video_to_frames \
+  --input "/Users/antonhorning/Desktop/PokerStars Screenshots/Live/Screen Recording.mov" \
+  --output tests/fixtures/live_sequences/pokerstars_live_001 \
+  --fps 2 \
+  --prefix pokerstars_live_001
+```
+
 Bootstrap review-only candidate annotations for unannotated frames the parser can read:
 
 ```bash

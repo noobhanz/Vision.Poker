@@ -61,6 +61,19 @@ class TestOCRNumberCleaning:
         result = engine._clean_number("$45.50")
         assert result == 45.5
 
+    def test_clean_false_currency_prefix(self, engine):
+        """Handle dollar signs misread as a leading 8 in PokerStars OCR."""
+        assert engine._clean_number("8006") == 0.06
+        assert engine._clean_number("80.04") == 0.04
+        assert engine._clean_number("81.98") == 1.98
+        assert engine._clean_number("82.03") == 2.03
+
+    def test_clean_compact_cents_without_breaking_whole_numbers(self, engine):
+        """Parse compact cents while preserving ordinary whole numbers."""
+        assert engine._clean_number("006") == 0.06
+        assert engine._clean_number("100") == 100.0
+        assert engine._clean_number("$100") == 100.0
+
 
 class TestOCRRegionExtraction:
     """Test OCR region reading (requires EasyOCR to be installed)."""

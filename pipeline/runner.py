@@ -122,6 +122,23 @@ class PipelineRunner:
 
     def _compute_metrics(self, state, parse_status: str = "OK") -> Metrics:
         """Compute all metrics from game state."""
+        if parse_status != "OK":
+            return Metrics(
+                equity=0.0,
+                pot_odds=0.0,
+                required_equity=0.0,
+                ev_call=0.0,
+                ev_fold=0.0,
+                outs=0,
+                draw_type=DrawType.NONE,
+                made_hand_rank="",
+                recommendation="WAIT",
+                confidence=state.confidence,
+                street=state.street,
+                parse_status=parse_status,
+                action_mode=state.action_mode,
+            )
+
         # Calculate equity
         equity = calculate_equity(
             hero=state.hero_cards,
