@@ -92,6 +92,21 @@ class NoHeroCardsDetector:
         return []
 
 
+class PartialBoardDetector:
+    def __init__(self):
+        self.cards = iter([
+            DetectedCard("Ah", 0.95, (0, 0, 10, 10)),
+            DetectedCard("Kd", 0.95, (0, 0, 10, 10)),
+            DetectedCard("2c", 0.91, (0, 0, 10, 10)),
+        ])
+
+    def detect(self, frame, roi):
+        try:
+            return [next(self.cards)]
+        except StopIteration:
+            return []
+
+
 def test_parse_with_fallback_reports_no_active_hero_cards_for_empty_hero_rois():
     parser = StateParser(NoHeroCardsDetector(), StubOCREngine())
     config = ROIConfig(
@@ -138,6 +153,28 @@ def test_parse_with_fallback_reports_incomplete_hero_cards():
 
     assert state is None
     assert status == "INCOMPLETE_HERO_CARDS"
+
+
+def test_parse_with_fallback_warns_on_partial_board_detection():
+    parser = StateParser(PartialBoardDetector(), StubOCREngine())
+    config = ROIConfig(
+        hero_card_1=ROIRegion(0, 0, 10, 10),
+        hero_card_2=ROIRegion(10, 0, 10, 10),
+        board_card_1=ROIRegion(20, 0, 10, 10),
+        board_card_2=ROIRegion(30, 0, 10, 10),
+        board_card_3=ROIRegion(40, 0, 10, 10),
+        pot_size=ROIRegion(0, 20, 10, 10),
+    )
+
+    state, status = parser.parse_with_fallback(
+        np.zeros((100, 120, 3), dtype=np.uint8),
+        config,
+    )
+
+    assert state is not None
+    assert status == "PARTIAL_BOARD_DETECTED_1"
+    assert state.hero_cards == ["Ah", "Kd"]
+    assert state.board_cards == ["2c"]
 
 
 @requires_cv2

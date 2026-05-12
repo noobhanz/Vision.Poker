@@ -327,6 +327,9 @@ class StateParser:
         if len(state.hero_cards) < 2:
             return state, "INCOMPLETE_HERO_CARDS"
 
+        if len(state.board_cards) in {1, 2}:
+            return state, f"PARTIAL_BOARD_DETECTED_{len(state.board_cards)}"
+
         if state.pot_size <= 0:
             return state, "NO_POT_DETECTED"
 
