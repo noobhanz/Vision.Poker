@@ -45,6 +45,7 @@ class CardDetector:
         model_path: Optional[str] = None,
         confidence_threshold: float = 0.75,
         template_dir: Optional[Path] = None,
+        min_card_white_ratio: float = 0.12,
     ):
         """
         Initialize card detector.
@@ -53,9 +54,11 @@ class CardDetector:
             model_path: Path to fine-tuned YOLOv8 model (.pt file)
             confidence_threshold: Minimum confidence for YOLO detections
             template_dir: Directory containing template images for fallback
+            min_card_white_ratio: Minimum bright-pixel ratio expected in a fixed card slot
         """
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
+        self.min_card_white_ratio = min_card_white_ratio
         self.template_dir = template_dir or Path(__file__).parent / "templates"
 
         self._model = None
@@ -147,6 +150,16 @@ class CardDetector:
             cv2.THRESH_BINARY | cv2.THRESH_OTSU,
         )
         return thresholded
+
+    def _has_card_like_pixels(self, crop: np.ndarray) -> bool:
+        """Return whether a fixed slot contains enough bright card surface."""
+        import cv2
+
+        if crop.size == 0:
+            return False
+
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if len(crop.shape) == 3 else crop
+        return float((gray > 180).mean()) >= self.min_card_white_ratio
 
     def _best_template_match(
         self,
@@ -298,6 +311,9 @@ class CardDetector:
 
         x, y, w, h = roi
         crop = frame[y : y + h, x : x + w]
+        if not self._has_card_like_pixels(crop):
+            return []
+
         detected = self._classify_rank_suit_from_crop(crop, threshold)
         if detected is None:
             return []
@@ -348,6 +364,10 @@ class CardDetector:
         crop = frame[y : y + h, x : x + w]
         if crop.size == 0:
             result["status"] = "EMPTY_CROP"
+            return result
+
+        if not self._has_card_like_pixels(crop):
+            result["status"] = "EMPTY_SLOT"
             return result
 
         rank_region, suit_region = self._rank_suit_regions(crop)
@@ -426,6 +446,10 @@ class CardDetector:
             result["status"] = "EMPTY_CROP"
             return result
 
+        if not self._has_card_like_pixels(crop):
+            result["status"] = "EMPTY_SLOT"
+            return result
+
         scores = []
         for card, templates in self._templates.items():
             best = max(self._template_max_score(crop, template) for template in templates)
@@ -472,6 +496,8 @@ class CardDetector:
         if roi:
             x, y, w, h = roi
             frame = frame[y : y + h, x : x + w]
+            if not self._has_card_like_pixels(frame):
+                return []
 
         try:
             results = self.model(frame, verbose=False)
@@ -542,6 +568,8 @@ class CardDetector:
         if roi:
             x, y, w, h = roi
             frame = frame[y : y + h, x : x + w]
+            if not self._has_card_like_pixels(frame):
+                return []
 
         detected = []
 

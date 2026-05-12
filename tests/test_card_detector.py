@@ -143,7 +143,7 @@ class TestCardDetectorTemplate:
         frame[14:24, 14:24] = cv2.cvtColor(rank_template, cv2.COLOR_GRAY2BGR)
         frame[34:44, 14:24] = cv2.cvtColor(suit_template, cv2.COLOR_GRAY2BGR)
 
-        detector = CardDetector(template_dir=tmp_path)
+        detector = CardDetector(template_dir=tmp_path, min_card_white_ratio=0.0)
         result = detector.detect_rank_suit_template(frame, (10, 10, 60, 80), threshold=0.5)
 
         assert len(result) == 1
@@ -169,7 +169,7 @@ class TestCardDetectorTemplate:
         frame[14:24, 14:24] = cv2.cvtColor(rank_template, cv2.COLOR_GRAY2BGR)
         frame[34:44, 14:24] = cv2.cvtColor(suit_template, cv2.COLOR_GRAY2BGR)
 
-        detector = CardDetector(template_dir=tmp_path)
+        detector = CardDetector(template_dir=tmp_path, min_card_white_ratio=0.0)
         diagnostic = detector.rank_suit_diagnostics(
             frame,
             (10, 10, 60, 80),
@@ -192,7 +192,7 @@ class TestCardDetectorTemplate:
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
         frame[10:30, 10:30] = card_template
 
-        detector = CardDetector(template_dir=tmp_path)
+        detector = CardDetector(template_dir=tmp_path, min_card_white_ratio=0.0)
         diagnostic = detector.full_card_template_diagnostics(
             frame,
             (10, 10, 60, 80),
@@ -204,6 +204,27 @@ class TestCardDetectorTemplate:
         assert diagnostic["accepted_card"] == "Ah"
         assert diagnostic["status"] == "ACCEPTED"
         assert diagnostic["card_candidates"][0]["label"] == "Ah"
+
+    def test_fixed_slot_template_rejects_empty_table_region(self, tmp_path):
+        """Fixed-slot template matching should not invent cards on empty felt."""
+        card_template = np.full((20, 20, 3), 255, dtype=np.uint8)
+        cv2.imwrite(str(tmp_path / "Ah.png"), card_template)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[:, :] = (20, 90, 30)
+
+        detector = CardDetector(template_dir=tmp_path)
+
+        assert detector.detect_template(frame, (10, 10, 60, 80), threshold=0.1) == []
+
+        diagnostic = detector.full_card_template_diagnostics(
+            frame,
+            (10, 10, 60, 80),
+            threshold=0.1,
+        )
+
+        assert diagnostic["accepted"] is False
+        assert diagnostic["status"] == "EMPTY_SLOT"
 
     def test_rank_suit_fallback_runs_when_full_templates_are_incomplete(self, tmp_path):
         """A missing full-card label can still classify through rank/suit templates."""
@@ -231,7 +252,7 @@ class TestCardDetectorTemplate:
         frame[14:24, 14:24] = cv2.cvtColor(rank_template, cv2.COLOR_GRAY2BGR)
         frame[34:44, 14:24] = cv2.cvtColor(suit_template, cv2.COLOR_GRAY2BGR)
 
-        detector = CardDetector(template_dir=tmp_path)
+        detector = CardDetector(template_dir=tmp_path, min_card_white_ratio=0.0)
         result = detector.detect_template(frame, (10, 10, 60, 80), threshold=0.95)
 
         assert len(result) == 1
