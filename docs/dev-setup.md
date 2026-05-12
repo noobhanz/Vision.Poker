@@ -76,6 +76,21 @@ python -m tools.replay_test \
   --strict
 ```
 
+Replay a sequence with the same consecutive-frame publish rule used by the
+live HUD:
+
+```bash
+python -m tools.replay_test \
+  --input tests/fixtures/sample_frames/pokerstars \
+  --skin pokerstars_mac_cash \
+  --monte-carlo 100 \
+  --stable-frames 2
+```
+
+This is most useful with an ordered capture sequence where the same table state
+appears across multiple changed frames. One-off fixture collections may show few
+or no published states when `--stable-frames` is greater than 1.
+
 Render an annotated debug image:
 
 ```bash

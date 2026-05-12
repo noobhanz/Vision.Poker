@@ -33,6 +33,7 @@ from vision.roi_config import ROIConfig, load_skin_config
 from vision.state_parser import StateParser
 
 from .ipc import MetricsQueue
+from .stability import StateStabilizer
 
 
 class PipelineRunner:
@@ -83,8 +84,7 @@ class PipelineRunner:
         # State
         self._running = False
         self._last_metrics: Optional[Metrics] = None
-        self._pending_stability_key: Optional[tuple] = None
-        self._pending_stability_count = 0
+        self._stabilizer = StateStabilizer(self.settings.stable_frames_required)
         self._hud = None
 
     def _init_frame_buffer(self, roi_config: ROIConfig) -> None:
@@ -183,34 +183,6 @@ class PipelineRunner:
             action_mode="none",
         )
 
-    def _stability_key(self, state, parse_status: str) -> tuple:
-        """Return the parts of state that should be stable before HUD updates."""
-        return (
-            tuple(state.hero_cards),
-            tuple(state.board_cards),
-            round(float(state.pot_size), 2),
-            round(float(state.bet_to_call), 2),
-            round(float(state.hero_stack), 2),
-            state.action_mode,
-            tuple(state.legal_actions),
-            tuple(sorted((key, round(float(value), 2)) for key, value in state.action_amounts.items())),
-            parse_status,
-        )
-
-    def _mark_stable(self, key: tuple) -> int:
-        """Track consecutive equal active parses and return the current count."""
-        if key == self._pending_stability_key:
-            self._pending_stability_count += 1
-        else:
-            self._pending_stability_key = key
-            self._pending_stability_count = 1
-        return self._pending_stability_count
-
-    def _reset_stability(self) -> None:
-        """Clear active-hand stability tracking."""
-        self._pending_stability_key = None
-        self._pending_stability_count = 0
-
     async def process_frame(self, frame: np.ndarray, rect: WindowRect) -> Optional[Metrics]:
         """
         Process a single frame through the pipeline.
@@ -235,18 +207,17 @@ class PipelineRunner:
         if state is None:
             if self.settings.debug_mode:
                 print(f"State parse failed: {status}")
-            self._reset_stability()
+            self._stabilizer.reset()
             if status == "NO_ACTIVE_HERO_CARDS":
                 return self._idle_metrics(status)
             return None
 
-        stability_count = self._mark_stable(self._stability_key(state, status))
-        required = max(1, self.settings.stable_frames_required)
-        if stability_count < required:
+        stability = self._stabilizer.observe(state, status)
+        if not stability.is_stable:
             if self.settings.debug_mode:
                 print(
                     "Waiting for stable parse "
-                    f"({stability_count}/{required}): {status}"
+                    f"({stability.count}/{stability.required}): {status}"
                 )
             return None
 

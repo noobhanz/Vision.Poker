@@ -8,6 +8,7 @@ import numpy as np
 from config.settings import Settings
 from engine.models import GameState
 from pipeline.runner import PipelineRunner
+from pipeline.stability import StateStabilizer
 from capture.window_finder import WindowRect
 from vision.roi_config import ROIConfig, ROIRegion
 
@@ -61,8 +62,7 @@ def test_process_frame_waits_for_repeated_active_parse():
     runner = PipelineRunner.__new__(PipelineRunner)
     runner.settings = Settings(stable_frames_required=2, monte_carlo_n=10)
     runner.roi_config = ROIConfig()
-    runner._pending_stability_key = None
-    runner._pending_stability_count = 0
+    runner._stabilizer = StateStabilizer(runner.settings.stable_frames_required)
     runner._hud = None
     runner.state_parser = StableParser(
         GameState(
@@ -93,8 +93,9 @@ def test_process_frame_emits_idle_without_stability_delay():
     runner = PipelineRunner.__new__(PipelineRunner)
     runner.settings = Settings(stable_frames_required=3, monte_carlo_n=10)
     runner.roi_config = ROIConfig()
-    runner._pending_stability_key = ("stale",)
-    runner._pending_stability_count = 2
+    runner._stabilizer = StateStabilizer(runner.settings.stable_frames_required)
+    runner._stabilizer._pending_key = ("stale",)
+    runner._stabilizer._pending_count = 2
     runner._hud = None
     runner.state_parser = EmptyParser()
 
@@ -107,4 +108,4 @@ def test_process_frame_emits_idle_without_stability_delay():
 
     assert metrics is not None
     assert metrics.parse_status == "NO_ACTIVE_HERO_CARDS"
-    assert runner._pending_stability_key is None
+    assert runner._stabilizer.pending_key is None

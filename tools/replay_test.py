@@ -23,6 +23,7 @@ from engine.equity import calculate_equity
 from engine.ev import ev_call, ev_fold, recommendation
 from engine.models import GameState, Metrics
 from engine.pot_odds import pot_odds, required_equity
+from pipeline.stability import StateStabilizer
 from vision.card_detector import CardDetector
 from vision.ocr_engine import OCREngine
 from vision.roi_config import load_skin_config
@@ -427,6 +428,12 @@ def main():
         action="store_true",
         help="Exit with non-zero status if any expected fixture comparison fails",
     )
+    parser.add_argument(
+        "--stable-frames",
+        type=int,
+        default=1,
+        help="Require repeated identical parsed states before marking metrics published",
+    )
 
     args = parser.parse_args()
 
@@ -448,6 +455,7 @@ def main():
     card_detector = CardDetector()
     ocr_engine = OCREngine()
     state_parser = StateParser(card_detector, ocr_engine)
+    stabilizer = StateStabilizer(args.stable_frames)
 
     # Find frame files
     if input_path.is_file():
@@ -483,14 +491,23 @@ def main():
         result = {
             "file": frame_path.name,
             "status": status,
+            "published": bool(metrics) and args.stable_frames <= 1,
         }
 
         if state:
             result["state"] = state_to_dict(state)
+            stability = stabilizer.observe(state, status)
+            result["stability"] = {
+                "count": stability.count,
+                "required": stability.required,
+                "stable": stability.is_stable,
+            }
+            result["published"] = bool(metrics) and stability.is_stable
 
             if expected:
                 result["expected"] = compare_expected(result["state"], expected)
         elif expected:
+            stabilizer.reset()
             result["expected"] = {
                 "passed": False,
                 "checked_fields": ["state"],
@@ -502,6 +519,8 @@ def main():
                     }
                 ],
             }
+        else:
+            stabilizer.reset()
 
         if metrics:
             result["metrics"] = metrics_to_dict(metrics)
@@ -521,6 +540,14 @@ def main():
                 print(f"EV(call): ${metrics.ev_call:.2f}")
                 print(f"Made Hand: {metrics.made_hand_rank}")
                 print(f"Recommendation: {metrics.recommendation}")
+                if args.stable_frames > 1:
+                    stability = result.get("stability", {})
+                    print(
+                        "Published: "
+                        f"{'yes' if result['published'] else 'no'} "
+                        f"({stability.get('count', 0)}/"
+                        f"{stability.get('required', args.stable_frames)})"
+                    )
             if expected:
                 comparison = result.get("expected", {"passed": False, "mismatches": []})
                 if comparison["passed"]:
@@ -564,6 +591,9 @@ def main():
         print(f"Active hands parsed: {active_hands}")
         print(f"No active hero cards: {no_active_hero_cards}")
         print(f"Failed: {failed}")
+        if args.stable_frames > 1:
+            published = sum(1 for r in results if r.get("published"))
+            print(f"Published after stability: {published}")
 
         annotated = accuracy_summary["fixtures"]["total"]
         passed = accuracy_summary["fixtures"]["passed"]
