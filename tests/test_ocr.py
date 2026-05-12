@@ -74,6 +74,11 @@ class TestOCRNumberCleaning:
         assert engine._clean_number("100") == 100.0
         assert engine._clean_number("$100") == 100.0
 
+    def test_rejects_label_glyphs_that_start_with_dots(self, engine):
+        """Avoid reading non-money labels such as All In as accidental numbers."""
+        assert engine._clean_number("..70") is None
+        assert engine._clean_number("..0.23") == 0.23
+
 
 class TestOCRRegionExtraction:
     """Test OCR region reading (requires EasyOCR to be installed)."""

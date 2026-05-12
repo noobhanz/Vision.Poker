@@ -115,6 +115,15 @@ class OCREngine:
         # Remove thousands separators and parse
         text = text.replace(",", "")
 
+        # Letter labels such as "All In" can produce leading dot-like glyphs
+        # when matched against numeric templates. Treat that as non-numeric
+        # instead of accepting the later accidental digits.
+        if text.startswith("."):
+            stripped = text.lstrip(".")
+            if "." not in stripped:
+                return None
+            text = stripped
+
         # PokerStars' small white dollar sign can be segmented like an "8" by
         # the lightweight template OCR. Normalize common forms such as
         # "$0.06" -> "8006", "$1.98" -> "81.98", and "$0.04" -> "80.04".
@@ -277,6 +286,12 @@ class OCREngine:
                 chars.append(label)
 
         text = "".join(chars)
+        if text.startswith("."):
+            stripped = text.lstrip(".")
+            if "." not in stripped:
+                return None
+            text = stripped
+
         # Drop common leading currency misreads by keeping from first digit.
         match = re.search(r"\d[\d.]*", text)
         if not match:

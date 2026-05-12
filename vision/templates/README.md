@@ -25,3 +25,5 @@ vision/templates/
 Templates should be grayscale-friendly crops from the top-left corner of cards for the target skin. Keep them tight around the printed symbol, with transparent or plain backgrounds avoided where possible. The detector normalizes crops before matching, but templates still need to come from the same visual family as the poker client skin.
 
 The older full-card fallback is still supported with files such as `Ah.png`, `Kd.png`, and so on directly inside this directory.
+
+Committed full-card variants should live under `vision/templates/cards/` with descriptive source names, for example `Ac_pokerstars_live_001_00144_00070.88s_0.png`. Root-level full-card PNGs are ignored so local extraction runs can create scratch defaults without accidentally expanding the committed asset set.
