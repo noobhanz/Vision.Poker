@@ -1,0 +1,11 @@
+{
+  "input": "/Users/antonhorning/Desktop/PokerStars Screenshots/Live/Screen Recording 2026-05-12 at 11.53.58.mov",
+  "output_dir": "tests/fixtures/live_sequences/pokerstars_live_smoke",
+  "source_width": 954,
+  "source_height": 688,
+  "target_fps": 2.0,
+  "extracted_frames": 9,
+  "prefix": "live_smoke",
+  "image_extension": "png",
+  "notes": "Small representative live regression subset sampled from the first PokerStars live screen recording. Includes no-active, preflop decision, flop decision, river/all-in, and board-warning states."
+}

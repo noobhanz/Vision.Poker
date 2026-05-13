@@ -29,3 +29,27 @@ def test_suspicious_money_checks_all_money_fields():
 def test_live_report_rejects_empty_frame_directory(tmp_path):
     with pytest.raises(ValueError, match="No image files"):
         summarize_live_frames(Path(tmp_path))
+
+
+def test_pokerstars_live_smoke_fixture_summary():
+    summary = summarize_live_frames(
+        Path("tests/fixtures/live_sequences/pokerstars_live_smoke"),
+        stable_frames=2,
+        monte_carlo_n=5,
+    )
+
+    assert summary["frames"]["total"] == 9
+    assert summary["frames"]["active"] == 8
+    assert summary["frames"]["published_ok"] == 3
+    assert summary["frames"]["published_warnings"] == 1
+    assert summary["frames"]["actionable_published_ok"] == 2
+    assert summary["status_counts"] == {
+        "OK": 6,
+        "BOARD_CARDS_UNREADABLE": 2,
+        "NO_ACTIVE_HERO_CARDS": 1,
+    }
+    assert summary["published_status_counts"] == {
+        "OK": 3,
+        "BOARD_CARDS_UNREADABLE": 1,
+    }
+    assert summary["suspicious_published_ok_count"] == 0
