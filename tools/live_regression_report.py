@@ -62,6 +62,70 @@ def _is_suspicious_money(state, max_reasonable_money: float) -> bool:
     return any(value > max_reasonable_money for value in money_values)
 
 
+def _slot_diagnostics(frame, scaled_config, card_detector: CardDetector) -> dict[str, Any]:
+    """Return compact per-card-slot accept/reject diagnostics for a frame."""
+    slots: dict[str, Any] = {}
+    slot_rois = [
+        *(
+            (f"hero_card_{index}", roi)
+            for index, roi in enumerate(scaled_config.get_hero_card_rois(), start=1)
+        ),
+        *(
+            (f"board_card_{index}", roi)
+            for index, roi in enumerate(scaled_config.get_board_card_rois(), start=1)
+        ),
+    ]
+
+    for slot_name, roi in slot_rois:
+        roi_tuple = roi.as_tuple()
+        full_card = card_detector.full_card_template_diagnostics(
+            frame,
+            roi_tuple,
+            threshold=0.8,
+            top_n=3,
+        )
+        rank_suit = card_detector.rank_suit_diagnostics(
+            frame,
+            roi_tuple,
+            threshold=0.72,
+            top_n=3,
+        )
+        accepted_card = (
+            full_card["accepted_card"]
+            if full_card["accepted"]
+            else rank_suit["accepted_card"]
+        )
+        confidence = (
+            full_card["confidence"]
+            if full_card["accepted"]
+            else rank_suit["confidence"]
+        )
+        slots[slot_name] = {
+            "accepted": bool(full_card["accepted"] or rank_suit["accepted"]),
+            "accepted_card": accepted_card,
+            "confidence": confidence,
+            "full_card_status": full_card["status"],
+            "rank_suit_status": rank_suit["status"],
+            "full_card_candidates": full_card.get("card_candidates", []),
+            "rank_candidates": rank_suit.get("rank_candidates", []),
+            "suit_candidates": rank_suit.get("suit_candidates", []),
+        }
+
+    return slots
+
+
+def _append_limited_sample(
+    samples: dict[str, list[dict[str, Any]]],
+    status: str,
+    sample: dict[str, Any],
+    sample_limit: int,
+) -> None:
+    """Append a warning sample while respecting the configured cap."""
+    existing = samples.setdefault(status, [])
+    if len(existing) < sample_limit:
+        existing.append(sample)
+
+
 def summarize_live_frames(
     input_path: Path,
     skin: str = "pokerstars_mac_cash",
@@ -69,6 +133,7 @@ def summarize_live_frames(
     monte_carlo_n: int = 20,
     max_reasonable_money: float = 10.0,
     sample_limit: int = 5,
+    include_card_diagnostics: bool = False,
 ) -> dict[str, Any]:
     """Run the parser over live frames and return a compact JSON summary."""
     frame_paths = _frame_paths(input_path)
@@ -76,7 +141,8 @@ def summarize_live_frames(
         raise ValueError(f"No image files found in {input_path}")
 
     roi_config = load_skin_config(skin)
-    state_parser = StateParser(CardDetector(), OCREngine())
+    card_detector = CardDetector()
+    state_parser = StateParser(card_detector, OCREngine())
     stabilizer = StateStabilizer(stable_frames)
 
     status_counts: Counter[str] = Counter()
@@ -109,8 +175,14 @@ def summarize_live_frames(
         if state is None:
             stabilizer.reset()
             if status != "NO_ACTIVE_HERO_CARDS":
-                warning_samples.setdefault(status, []).append({"file": frame_path.name})
-                warning_samples[status] = warning_samples[status][:sample_limit]
+                sample: dict[str, Any] = {"file": frame_path.name}
+                if include_card_diagnostics:
+                    sample["card_slots"] = _slot_diagnostics(
+                        frame,
+                        scaled_config,
+                        card_detector,
+                    )
+                _append_limited_sample(warning_samples, status, sample, sample_limit)
             continue
 
         active_frames += 1
@@ -137,17 +209,21 @@ def summarize_live_frames(
                 )
         else:
             published_warning_frames += 1
-            warning_samples.setdefault(status, []).append(
-                {
-                    "file": frame_path.name,
-                    "hero_cards": state.hero_cards,
-                    "board_cards": state.board_cards,
-                    "street": state.street.value,
-                    "pot_size": state.pot_size,
-                    "hero_stack": state.hero_stack,
-                }
-            )
-            warning_samples[status] = warning_samples[status][:sample_limit]
+            sample = {
+                "file": frame_path.name,
+                "hero_cards": state.hero_cards,
+                "board_cards": state.board_cards,
+                "street": state.street.value,
+                "pot_size": state.pot_size,
+                "hero_stack": state.hero_stack,
+            }
+            if include_card_diagnostics:
+                sample["card_slots"] = _slot_diagnostics(
+                    frame,
+                    scaled_config,
+                    card_detector,
+                )
+            _append_limited_sample(warning_samples, status, sample, sample_limit)
 
     total_frames = len(frame_paths)
     ok_frames = status_counts["OK"]
@@ -159,6 +235,7 @@ def summarize_live_frames(
         "stable_frames": stable_frames,
         "monte_carlo_n": monte_carlo_n,
         "max_reasonable_money": max_reasonable_money,
+        "include_card_diagnostics": include_card_diagnostics,
         "manifest": _load_manifest(input_path),
         "frames": {
             "total": total_frames,
@@ -197,6 +274,11 @@ def main() -> None:
     parser.add_argument("--monte-carlo", "-n", type=int, default=20)
     parser.add_argument("--max-reasonable-money", type=float, default=10.0)
     parser.add_argument("--sample-limit", type=int, default=5)
+    parser.add_argument(
+        "--include-card-diagnostics",
+        action="store_true",
+        help="Include per-slot card recognizer candidates for warning samples",
+    )
     parser.add_argument("--output", "-o", default=None, help="Optional JSON output path")
     args = parser.parse_args()
 
@@ -208,6 +290,7 @@ def main() -> None:
             monte_carlo_n=args.monte_carlo,
             max_reasonable_money=args.max_reasonable_money,
             sample_limit=args.sample_limit,
+            include_card_diagnostics=args.include_card_diagnostics,
         )
     except (FileNotFoundError, ValueError) as exc:
         print(str(exc), file=sys.stderr)

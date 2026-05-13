@@ -81,6 +81,9 @@ Use this report as the live-readiness baseline. Track `published_ok`,
 `published_warnings`, `suspicious_published_ok_count`, and the top warning
 statuses before and after recognizer changes.
 
+When investigating card-reader warnings, add `--include-card-diagnostics` to
+include per-slot full-card and rank/suit candidates in the warning samples.
+
 The repo includes a tiny smoke sequence at
 `tests/fixtures/live_sequences/pokerstars_live_smoke`. It is intentionally only
 large enough to cover stable preflop, flop, river/all-in, no-active, and
