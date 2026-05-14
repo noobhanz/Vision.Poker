@@ -195,7 +195,7 @@ class TestCardDetectorTemplate:
         detector = CardDetector(template_dir=tmp_path, min_card_white_ratio=0.0)
         diagnostic = detector.full_card_template_diagnostics(
             frame,
-            (10, 10, 60, 80),
+            (10, 10, 20, 20),
             threshold=0.8,
             top_n=3,
         )

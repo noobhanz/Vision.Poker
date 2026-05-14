@@ -271,6 +271,30 @@ class CardDetector:
         _, max_val, _, _ = cv2.minMaxLoc(result)
         return float(max_val)
 
+    def _fixed_slot_template_scores(
+        self,
+        crop: np.ndarray,
+    ) -> list[tuple[str, float]]:
+        """Return full-card template scores for a crop known to contain one card slot."""
+        import cv2
+
+        scores: list[tuple[str, float]] = []
+        if crop.size == 0:
+            return scores
+
+        for card, templates in self._templates.items():
+            best = 0.0
+            for template in templates:
+                normalized_crop = cv2.resize(
+                    crop,
+                    (template.shape[1], template.shape[0]),
+                    interpolation=cv2.INTER_AREA,
+                )
+                best = max(best, self._template_max_score(normalized_crop, template))
+            scores.append((card, best))
+
+        return sorted(scores, key=lambda item: item[1], reverse=True)
+
     def _classify_rank_suit_from_crop(
         self,
         crop: np.ndarray,
@@ -463,12 +487,7 @@ class CardDetector:
             result["status"] = "EMPTY_SLOT"
             return result
 
-        scores = []
-        for card, templates in self._templates.items():
-            best = max(self._template_max_score(crop, template) for template in templates)
-            scores.append((card, best))
-
-        scores = sorted(scores, key=lambda item: item[1], reverse=True)
+        scores = self._fixed_slot_template_scores(crop)
         result["card_candidates"] = [
             {"label": label, "score": round(score, 4)}
             for label, score in scores[:top_n]
@@ -584,6 +603,24 @@ class CardDetector:
             if not self._has_card_like_pixels(frame):
                 return []
 
+            scores = self._fixed_slot_template_scores(frame)
+            if scores:
+                card_name, confidence = scores[0]
+                if confidence >= threshold:
+                    return [
+                        DetectedCard(
+                            card=card_name,
+                            confidence=confidence,
+                            bbox=(0, 0, w, h),
+                        )
+                    ]
+
+            return self.detect_rank_suit_template(
+                frame,
+                (0, 0, frame.shape[1], frame.shape[0]),
+                threshold=min(threshold, 0.70),
+            )
+
         detected = []
 
         for card_name, templates in self._templates.items():
@@ -624,15 +661,6 @@ class CardDetector:
                                 bbox=(pt[0], pt[1], template.shape[1], template.shape[0]),
                             )
                         )
-
-        if roi and not detected:
-            detected.extend(
-                self.detect_rank_suit_template(
-                    frame,
-                    (0, 0, frame.shape[1], frame.shape[0]),
-                    threshold=min(threshold, 0.70),
-                )
-            )
 
         return detected
 
