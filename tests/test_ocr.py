@@ -79,6 +79,16 @@ class TestOCRNumberCleaning:
         assert engine._clean_number("..70") is None
         assert engine._clean_number("..0.23") == 0.23
 
+    def test_uses_last_decimal_when_label_glyphs_add_extra_dots(self, engine):
+        """Recover pot amounts when label/currency glyphs add extra dots."""
+        assert engine._clean_number("0..0.07") == 0.07
+
+    def test_clean_pot_label_currency_noise(self, engine):
+        """Recover amounts from PokerStars pot label/currency OCR noise."""
+        assert engine._clean_number("90.8007") == 0.07
+        assert engine._clean_number("90.802") == 0.02
+        assert engine._clean_number("90.8272") == 2.72
+
 
 class TestOCRRegionExtraction:
     """Test OCR region reading (requires EasyOCR to be installed)."""

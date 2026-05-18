@@ -132,6 +132,18 @@ class OCREngine:
             if corrected is not None:
                 return corrected
 
+        # Extra dot-like glyphs from labels/currency can produce strings such
+        # as "0..0.07"; prefer the final decimal-looking token in those cases.
+        decimal_matches = re.findall(r"\d+\.\d+", text)
+        if decimal_matches:
+            label_noise_value = self._parse_pot_label_noise(decimal_matches[-1])
+            if label_noise_value is not None:
+                return label_noise_value
+            try:
+                return float(decimal_matches[-1])
+            except ValueError:
+                pass
+
         # Extract the numeric portion
         num_match = re.search(r"[\d.]+", text)
         if num_match:
@@ -169,6 +181,17 @@ class OCREngine:
         if len(text) < 3 or len(text) > 4 or not text.startswith("0"):
             return None
         return int(text) / 100
+
+    def _parse_pot_label_noise(self, text: str) -> Optional[float]:
+        """Parse pot amounts after PokerStars label/currency glyph noise."""
+        if not text.startswith("90.8"):
+            return None
+
+        suffix = text[4:]
+        if not suffix.isdigit() or not 2 <= len(suffix) <= 3:
+            return None
+
+        return int(suffix) / 100
 
     def read_number(
         self,
@@ -257,13 +280,12 @@ class OCREngine:
         if not self._ocr_templates:
             return None
 
-        # For action buttons like "Call\n$0.02", focus on the lower amount line.
-        if region.shape[0] > 35:
-            region = region[int(region.shape[0] * 0.45) :, :]
-
         # For pot labels like "Pot: $0.03", focus on the right-side amount.
-        if region.shape[1] > 80 and region.shape[0] < 35:
+        if region.shape[1] >= 170 and region.shape[0] <= 55:
             region = region[:, int(region.shape[1] * 0.45) :]
+        # For action buttons like "Call\n$0.02", focus on the lower amount line.
+        elif region.shape[0] > 60:
+            region = region[int(region.shape[0] * 0.45) :, :]
 
         mask = self._template_mask(region)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

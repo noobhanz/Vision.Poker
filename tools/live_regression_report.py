@@ -131,7 +131,7 @@ def summarize_live_frames(
     skin: str = "pokerstars_mac_cash",
     stable_frames: int = 2,
     monte_carlo_n: int = 20,
-    max_reasonable_money: float = 10.0,
+    max_reasonable_money: float = 50.0,
     sample_limit: int = 5,
     include_card_diagnostics: bool = False,
 ) -> dict[str, Any]:
@@ -272,7 +272,7 @@ def main() -> None:
     parser.add_argument("--skin", "-s", default="pokerstars_mac_cash")
     parser.add_argument("--stable-frames", type=int, default=2)
     parser.add_argument("--monte-carlo", "-n", type=int, default=20)
-    parser.add_argument("--max-reasonable-money", type=float, default=10.0)
+    parser.add_argument("--max-reasonable-money", type=float, default=50.0)
     parser.add_argument("--sample-limit", type=int, default=5)
     parser.add_argument(
         "--include-card-diagnostics",
