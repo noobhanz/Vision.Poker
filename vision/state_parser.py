@@ -203,6 +203,10 @@ class StateParser:
             frame,
             roi_config.get_hero_card_rois(),
         )
+        if not hero_detections:
+            if self._last_parse_error == "OK":
+                self._last_parse_error = "NO_ACTIVE_HERO_CARDS"
+            return None
 
         # Detect board cards
         board_rois = roi_config.get_board_card_rois()

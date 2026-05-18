@@ -92,6 +92,17 @@ class NoHeroCardsDetector:
         return []
 
 
+class NoHeroDuplicateBoardDetector:
+    def __init__(self):
+        self.calls = 0
+
+    def detect(self, frame, roi):
+        self.calls += 1
+        if self.calls <= 2:
+            return []
+        return [DetectedCard("6d", 0.95, (0, 0, 10, 10))]
+
+
 class PartialBoardDetector:
     def __init__(self):
         self.cards = iter([
@@ -139,6 +150,26 @@ def test_parse_with_fallback_reports_no_active_hero_cards_for_empty_hero_rois():
 
     assert state is None
     assert status == "NO_ACTIVE_HERO_CARDS"
+
+
+def test_missing_hero_cards_take_precedence_over_board_duplicate_misreads():
+    parser = StateParser(NoHeroDuplicateBoardDetector(), StubOCREngine())
+    config = ROIConfig(
+        hero_card_1=ROIRegion(0, 0, 10, 10),
+        hero_card_2=ROIRegion(10, 0, 10, 10),
+        board_card_1=ROIRegion(20, 0, 10, 10),
+        board_card_2=ROIRegion(30, 0, 10, 10),
+        board_card_3=ROIRegion(40, 0, 10, 10),
+    )
+
+    state, status = parser.parse_with_fallback(
+        np.zeros((100, 120, 3), dtype=np.uint8),
+        config,
+    )
+
+    assert state is None
+    assert status == "NO_ACTIVE_HERO_CARDS"
+    assert parser.card_detector.calls == 2
 
 
 def test_parse_with_fallback_reports_duplicate_cards():
