@@ -272,6 +272,7 @@ def run_hud(args: argparse.Namespace) -> int:
         opacity=args.opacity,
         position=args.position,
         standalone=not args.table_overlay_hud,
+        always_on_top=args.hud_always_on_top,
     )
 
     table_window = None
@@ -295,7 +296,11 @@ def run_hud(args: argparse.Namespace) -> int:
     hud.set_status("REPLAY")
 
     interval_ms = max(1, int(1000 / args.fps / args.speed)) if args.fps > 0 else 1
-    state = {"index": 0, "capture_warning_printed": False}
+    state = {
+        "index": 0,
+        "capture_warning_printed": False,
+        "hud_positioned": False,
+    }
     timer = QTimer()
     should_loop = args.loop or not args.once
     screen_capture = (
@@ -378,7 +383,14 @@ def run_hud(args: argparse.Namespace) -> int:
                     rect,
                 )
             )
-        hud.position_over_window(rect)
+        should_position_hud = (
+            args.table_overlay_hud
+            or args.follow_table_hud
+            or not state["hud_positioned"]
+        )
+        if should_position_hud:
+            hud.position_over_window(rect)
+            state["hud_positioned"] = True
         if metrics is not None:
             hud.update_metrics(metrics)
         elif args.debug:
@@ -419,6 +431,16 @@ def parse_args() -> argparse.Namespace:
         "--table-overlay-hud",
         action="store_true",
         help="Place the HUD as a transparent overlay inside the table frame",
+    )
+    parser.add_argument(
+        "--follow-table-hud",
+        action="store_true",
+        help="Keep repositioning the standalone HUD beside the replay/table window",
+    )
+    parser.add_argument(
+        "--hud-always-on-top",
+        action="store_true",
+        help="Keep the standalone HUD above other windows",
     )
     parser.add_argument(
         "--screen-capture-replay",

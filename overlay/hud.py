@@ -101,6 +101,7 @@ class PokerHUD(QWidget):
         opacity: float = 0.88,
         position: str = "top-right",
         standalone: bool = False,
+        always_on_top: bool = False,
     ):
         super().__init__()
 
@@ -108,6 +109,7 @@ class PokerHUD(QWidget):
         self.base_opacity = opacity
         self.position_preference = position
         self.standalone = standalone
+        self.always_on_top = always_on_top
         self._poker_window_rect: Optional[WindowRect] = None
 
         self._setup_window()
@@ -125,7 +127,9 @@ class PokerHUD(QWidget):
 
         if self.standalone:
             # Product/test panel: readable, movable, and separate from the table.
-            flags = Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint
+            flags = Qt.WindowType.Window
+            if self.always_on_top:
+                flags |= Qt.WindowType.WindowStaysOnTopHint
         else:
             # Table overlay: frameless, always on top, tool window (no taskbar).
             flags = (
@@ -401,6 +405,7 @@ def create_hud_app(
     opacity: float = 0.88,
     position: str = "top-right",
     standalone: bool = False,
+    always_on_top: bool = False,
 ) -> tuple[QApplication, PokerHUD]:
     """
     Create and return the Qt application and HUD widget.
@@ -411,6 +416,7 @@ def create_hud_app(
         position: Position preference
         standalone: Whether to use a standalone product panel instead of a
             transparent table overlay
+        always_on_top: Keep standalone panel above other windows
 
     Returns:
         Tuple of (QApplication, PokerHUD)
@@ -424,5 +430,6 @@ def create_hud_app(
         opacity=opacity,
         position=position,
         standalone=standalone,
+        always_on_top=always_on_top,
     )
     return app, hud
