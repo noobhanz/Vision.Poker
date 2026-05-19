@@ -1,93 +1,111 @@
-/* Dark poker aesthetic stylesheet */
+/* Vision Poker HUD stylesheet */
 
 /* Main container */
 QWidget#PokerHUD {
-    background-color: rgba(5, 8, 14, 0.96);
-    border: 1px solid rgba(0, 200, 83, 0.55);
+    background-color: #060910;
+    border: 1px solid rgba(56, 246, 141, 0.42);
     border-radius: 8px;
 }
 
-/* Header */
-QLabel#header {
-    color: #36f58b;
-    font-size: 15px;
+QWidget#brand {
+    background-color: transparent;
+}
+
+QLabel#brand_vision {
+    color: #f6f8fb;
+    font-size: 16px;
     font-weight: bold;
-    padding: 8px;
+    letter-spacing: 0px;
+    padding: 4px 0px 4px 0px;
+}
+
+QLabel#brand_poker {
+    color: #38f68d;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0px;
+    padding: 4px 0px 4px 0px;
 }
 
 QLabel#status_live {
-    color: #36f58b;
-    font-size: 12px;
+    color: #38f68d;
+    font-size: 11px;
+    font-weight: bold;
+    padding-left: 4px;
 }
 
 QLabel#status_warning {
-    color: #ffab00;
-    font-size: 12px;
+    color: #fbbf24;
+    font-size: 11px;
+    font-weight: bold;
+    padding-left: 4px;
 }
 
 /* Metric labels */
 QLabel#metric_label {
-    color: #98a2b3;
+    color: #a7b0c0;
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 4px 4px;
 }
 
 QLabel#metric_value {
-    color: #e8eaed;
+    color: #f2f5f8;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
-    padding: 4px 8px;
+    padding: 4px 4px;
 }
 
 QLabel#metric_info {
-    color: #36f58b;
+    color: #38f68d;
     font-size: 10px;
     font-weight: bold;
-    border: 1px solid rgba(54, 245, 139, 0.55);
+    background-color: rgba(56, 246, 141, 0.08);
+    border: 1px solid rgba(56, 246, 141, 0.62);
     border-radius: 7px;
     padding: 0px;
 }
 
 QToolTip {
-    background-color: #05080e;
-    color: #e8eaed;
-    border: 1px solid #36f58b;
-    padding: 6px;
+    background-color: #101722;
+    color: #f2f5f8;
+    border: 1px solid rgba(56, 246, 141, 0.75);
+    padding: 8px;
     font-size: 12px;
+    border-radius: 4px;
 }
 
 /* Colored values */
 QLabel#value_positive {
-    color: #36f58b;
+    color: #38f68d;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
 QLabel#value_negative {
-    color: #f44336;
+    color: #ff5f5f;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
 QLabel#value_neutral {
-    color: #e8eaed;
+    color: #f2f5f8;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
 QLabel#value_muted {
-    color: #667085;
+    color: #7c8798;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
 QLabel#value_warning {
-    color: #ffab00;
+    color: #fbbf24;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
@@ -95,94 +113,96 @@ QLabel#value_warning {
 
 /* Draw info */
 QLabel#draw_info {
-    color: #58a6ff;
+    color: #7bc6ff;
     font-size: 12px;
-    padding: 4px 8px;
+    font-weight: bold;
+    padding: 4px 4px;
 }
 
 /* Made hand */
 QLabel#made_hand {
-    color: #e8eaed;
+    color: #f2f5f8;
     font-size: 12px;
-    padding: 4px 8px;
+    font-weight: bold;
+    padding: 4px 4px;
 }
 
 /* Recommendation box */
 QFrame#recommendation_box {
-    background-color: rgba(0, 200, 83, 0.18);
-    border: 1px solid #36f58b;
-    border-radius: 4px;
-    padding: 8px;
+    background-color: rgba(12, 112, 67, 0.42);
+    border: 1px solid rgba(56, 246, 141, 0.86);
+    border-radius: 6px;
+    padding: 7px;
 }
 
 QFrame#recommendation_box_fold {
-    background-color: rgba(244, 67, 54, 0.15);
-    border: 1px solid #f44336;
-    border-radius: 4px;
-    padding: 8px;
+    background-color: rgba(127, 29, 29, 0.42);
+    border: 1px solid rgba(255, 95, 95, 0.86);
+    border-radius: 6px;
+    padding: 7px;
 }
 
 QFrame#recommendation_box_raise {
-    background-color: rgba(88, 166, 255, 0.15);
-    border: 1px solid #58a6ff;
-    border-radius: 4px;
-    padding: 8px;
+    background-color: rgba(12, 54, 96, 0.52);
+    border: 1px solid rgba(123, 198, 255, 0.9);
+    border-radius: 6px;
+    padding: 7px;
 }
 
 QLabel#recommendation_text {
-    color: #e8eaed;
+    color: #f2f5f8;
     font-size: 13px;
     font-weight: bold;
 }
 
 QLabel#recommendation_call {
-    color: #36f58b;
+    color: #38f68d;
     font-size: 13px;
     font-weight: bold;
 }
 
 QLabel#recommendation_fold {
-    color: #f44336;
+    color: #ff5f5f;
     font-size: 13px;
     font-weight: bold;
 }
 
 QLabel#recommendation_raise {
-    color: #58a6ff;
+    color: #7bc6ff;
     font-size: 13px;
     font-weight: bold;
 }
 
 /* Footer / confidence */
 QLabel#confidence {
-    color: #98a2b3;
+    color: #a7b0c0;
     font-size: 11px;
-    padding: 4px 8px;
+    padding: 4px 4px;
 }
 
 QLabel#confidence_low {
-    color: #ffab00;
+    color: #fbbf24;
     font-size: 11px;
-    padding: 4px 8px;
+    padding: 4px 4px;
 }
 
 QLabel#street_label {
-    color: #d0d5dd;
+    color: #dffbea;
     font-size: 11px;
-    background-color: rgba(0, 200, 83, 0.12);
-    border: 1px solid rgba(0, 200, 83, 0.35);
+    background-color: rgba(56, 246, 141, 0.12);
+    border: 1px solid rgba(56, 246, 141, 0.42);
     border-radius: 4px;
     padding: 2px 6px;
 }
 
 /* Separator line */
 QFrame#separator {
-    background-color: rgba(0, 200, 83, 0.22);
+    background-color: rgba(56, 246, 141, 0.38);
     max-height: 1px;
 }
 
 /* Hotkey hint */
 QLabel#hotkey_hint {
-    color: #6e7681;
+    color: #7c8798;
     font-size: 10px;
 }

@@ -155,8 +155,9 @@ class PokerHUD(QWidget):
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
             self.setWindowOpacity(self.base_opacity)
 
-        # Fixed width, height adjusts to content
-        self.setFixedWidth(340 if self.standalone else 280)
+        # Fixed width, height adjusts to content. The standalone panel gets a
+        # little more breathing room because it is now the product-facing HUD.
+        self.setFixedWidth(360 if self.standalone else 292)
 
     def _enable_click_through_windows(self) -> None:
         """Enable click-through on Windows using WS_EX_TRANSPARENT."""
@@ -187,13 +188,29 @@ class PokerHUD(QWidget):
     def _setup_ui(self) -> None:
         """Build the HUD layout."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 10, 12, 10)
-        main_layout.setSpacing(6)
+        main_layout.setContentsMargins(14, 12, 14, 12)
+        main_layout.setSpacing(8)
 
         # Header
         header_layout = QHBoxLayout()
-        self.title = QLabel("VISION.POKER")
-        self.title.setObjectName("header")
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(8)
+
+        brand_layout = QHBoxLayout()
+        brand_layout.setContentsMargins(0, 0, 0, 0)
+        brand_layout.setSpacing(0)
+
+        self.title_vision = QLabel("VISION.")
+        self.title_vision.setObjectName("brand_vision")
+        self.title_poker = QLabel("POKER")
+        self.title_poker.setObjectName("brand_poker")
+
+        brand_layout.addWidget(self.title_vision)
+        brand_layout.addWidget(self.title_poker)
+
+        brand = QWidget()
+        brand.setObjectName("brand")
+        brand.setLayout(brand_layout)
 
         self.status = QLabel("\u25cf LIVE")
         self.status.setObjectName("status_live")
@@ -201,7 +218,7 @@ class PokerHUD(QWidget):
         self.hotkey_hint = QLabel(f"[{self.hotkey}:hide]")
         self.hotkey_hint.setObjectName("hotkey_hint")
 
-        header_layout.addWidget(self.title)
+        header_layout.addWidget(brand)
         header_layout.addWidget(self.status)
         header_layout.addStretch()
         header_layout.addWidget(self.hotkey_hint)
