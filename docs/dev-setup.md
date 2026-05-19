@@ -84,6 +84,20 @@ statuses before and after recognizer changes.
 When investigating card-reader warnings, add `--include-card-diagnostics` to
 include per-slot full-card and rank/suit candidates in the warning samples.
 
+Run the live-readiness gate when you want a pass/fail check instead of a report:
+
+```bash
+python -m tools.live_readiness_gate \
+  --input tests/fixtures/live_sequences/pokerstars_live_smoke \
+  --skin pokerstars_mac_cash \
+  --stable-frames 2 \
+  --monte-carlo 20 \
+  --max-published-warning-rate 0.25 \
+  --min-published-ok 3 \
+  --min-actionable-published-ok 2 \
+  --required-published-streets preflop,flop,river
+```
+
 The repo includes a tiny smoke sequence at
 `tests/fixtures/live_sequences/pokerstars_live_smoke`. It is intentionally only
 large enough to cover stable preflop, flop, river/all-in, no-active, and
