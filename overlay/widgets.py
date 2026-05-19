@@ -3,9 +3,30 @@
 from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolTip, QVBoxLayout, QWidget
 
 from engine.models import DrawType, Metrics
+
+
+class InfoLabel(QLabel):
+    """Small clickable help marker that reliably shows metric help text."""
+
+    def __init__(self, text: str = "?", parent: Optional[QWidget] = None):
+        super().__init__(text, parent)
+        self.setCursor(Qt.CursorShape.WhatsThisCursor)
+
+    def _show_tooltip(self) -> None:
+        tooltip = self.toolTip()
+        if tooltip:
+            QToolTip.showText(self.mapToGlobal(self.rect().bottomRight()), tooltip, self)
+
+    def enterEvent(self, event) -> None:
+        self._show_tooltip()
+        super().enterEvent(event)
+
+    def mousePressEvent(self, event) -> None:
+        self._show_tooltip()
+        super().mousePressEvent(event)
 
 
 class MetricWidget(QWidget):
@@ -27,7 +48,7 @@ class MetricWidget(QWidget):
         self.label = QLabel(label)
         self.label.setObjectName("metric_label")
 
-        self.info = QLabel("?")
+        self.info = InfoLabel("?")
         self.info.setObjectName("metric_info")
         self.info.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.info.setFixedWidth(14)
@@ -213,8 +234,9 @@ class MadeHandWidget(QWidget):
         layout.addWidget(self.hand)
         layout.addStretch()
 
-    def set_hand(self, description: str) -> None:
+    def set_hand(self, description: str, *, preflop: bool = False) -> None:
         """Set made hand description."""
+        self.prefix.setText("Hole cards:" if preflop else "Made hand:")
         self.hand.setText(description)
 
 

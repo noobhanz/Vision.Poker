@@ -372,7 +372,10 @@ class PokerHUD(QWidget):
         self.draw_widget.set_draw_info(metrics.outs, metrics.draw_type)
 
         # Update made hand
-        self.made_hand_widget.set_hand(metrics.made_hand_rank)
+        self.made_hand_widget.set_hand(
+            metrics.made_hand_rank,
+            preflop=metrics.street == Street.PREFLOP,
+        )
 
         # Update recommendation
         reason = ""
