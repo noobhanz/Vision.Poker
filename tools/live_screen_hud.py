@@ -272,22 +272,41 @@ def run_controller_app(args: argparse.Namespace) -> int:
 
     window = QWidget()
     window.setWindowTitle("Vision Poker Live Readiness")
-    window.setMinimumWidth(460)
+    window.setObjectName("LiveReadinessController")
+    window.setMinimumWidth(640)
+    window.resize(760, 430)
 
     layout = QVBoxLayout(window)
-    layout.setContentsMargins(18, 16, 18, 16)
-    layout.setSpacing(12)
+    layout.setContentsMargins(22, 20, 22, 20)
+    layout.setSpacing(14)
 
-    title = QLabel("VISION.POKER")
-    title.setObjectName("brand_poker")
-    subtitle = QLabel("Watch a visible recording/player window with the real HUD.")
+    brand_layout = QHBoxLayout()
+    brand_layout.setContentsMargins(0, 0, 0, 0)
+    brand_layout.setSpacing(0)
+    brand_vision = QLabel("VISION.")
+    brand_vision.setObjectName("brand_vision")
+    brand_poker = QLabel("POKER")
+    brand_poker.setObjectName("brand_poker")
+    brand_layout.addWidget(brand_vision)
+    brand_layout.addWidget(brand_poker)
+    brand_layout.addStretch()
+    layout.addLayout(brand_layout)
+
+    subtitle = QLabel(
+        "Test the real HUD against a visible recording window before going live."
+    )
     subtitle.setObjectName("metric_label")
-    layout.addWidget(title)
     layout.addWidget(subtitle)
 
     window_select = QComboBox()
+    window_select.setToolTip(
+        "Visible windows macOS can see. Pick VLC, QuickTime, or a PokerStars table."
+    )
     title_input = QLineEdit(args.title or "")
     title_input.setPlaceholderText("VLC, QuickTime Player, Screen Recording, PokerStars...")
+    title_input.setToolTip(
+        "The app captures the first visible window whose title or app name contains this text."
+    )
 
     def refresh_windows() -> None:
         current = title_input.text()
@@ -309,19 +328,34 @@ def run_controller_app(args: argparse.Namespace) -> int:
     window_select.currentIndexChanged.connect(use_selected_window)
 
     form = QFormLayout()
+    form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+    form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+    form.setHorizontalSpacing(12)
+    form.setVerticalSpacing(10)
     form.addRow("Detected windows", window_select)
     form.addRow("Window title contains", title_input)
 
     fps_spin = QSpinBox()
     fps_spin.setRange(1, 30)
     fps_spin.setValue(args.fps)
+    fps_spin.setToolTip(
+        "How many times per second Vision Poker reads the visible window. "
+        "Higher is smoother but uses more CPU."
+    )
     stable_spin = QSpinBox()
     stable_spin.setRange(1, 6)
     stable_spin.setValue(args.stable_frames)
+    stable_spin.setToolTip(
+        "How many consecutive matching reads are required before the HUD updates. "
+        "Higher values reduce flicker and false reads."
+    )
     monte_spin = QSpinBox()
     monte_spin.setRange(10, 5000)
     monte_spin.setSingleStep(10)
     monte_spin.setValue(args.monte_carlo)
+    monte_spin.setToolTip(
+        "Number of simulations used for equity. Higher can be more precise but slower."
+    )
     form.addRow("Capture FPS", fps_spin)
     form.addRow("Stable frames", stable_spin)
     form.addRow("Monte Carlo", monte_spin)
@@ -338,6 +372,10 @@ def run_controller_app(args: argparse.Namespace) -> int:
     ]:
         spin.setRange(0, 500)
         spin.setValue(value)
+        spin.setToolTip(
+            "Trim pixels from the recording/player window before parsing. Use this "
+            "only if player controls or borders are inside the captured image."
+        )
 
     crop_row = QHBoxLayout()
     crop_row.addWidget(QLabel("L"))
@@ -350,6 +388,15 @@ def run_controller_app(args: argparse.Namespace) -> int:
     crop_row.addWidget(crop_bottom)
     form.addRow("Crop margins", crop_row)
     layout.addLayout(form)
+
+    help_text = QLabel(
+        "Recommended: open a cropped recording in VLC or QuickTime, select that "
+        "window, keep crop margins at 0 unless the player controls are captured, "
+        "then press Start HUD."
+    )
+    help_text.setObjectName("controller_help")
+    help_text.setWordWrap(True)
+    layout.addWidget(help_text)
 
     status = QLabel("Stopped")
     status.setObjectName("confidence")
@@ -368,7 +415,86 @@ def run_controller_app(args: argparse.Namespace) -> int:
     layout.addLayout(buttons)
     layout.addWidget(status)
 
-    window.setStyleSheet((Path(__file__).parents[1] / "overlay" / "styles.qss").read_text())
+    controller_style = """
+    QWidget#LiveReadinessController {
+        background-color: #060910;
+        color: #f2f5f8;
+    }
+    QWidget#LiveReadinessController QLabel {
+        background-color: transparent;
+    }
+    QWidget#LiveReadinessController QLabel#brand_vision {
+        color: #f6f8fb;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 0px;
+    }
+    QWidget#LiveReadinessController QLabel#brand_poker {
+        color: #38f68d;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 0px;
+    }
+    QWidget#LiveReadinessController QLabel#metric_label {
+        color: #a7b0c0;
+        font-size: 13px;
+        padding: 0px;
+    }
+    QWidget#LiveReadinessController QLabel#controller_help {
+        color: #a7b0c0;
+        font-size: 12px;
+        padding: 10px 12px;
+        border: 1px solid rgba(56, 246, 141, 0.22);
+        border-radius: 6px;
+        background-color: rgba(56, 246, 141, 0.06);
+    }
+    QWidget#LiveReadinessController QLabel#confidence {
+        color: #a7b0c0;
+        font-size: 12px;
+        padding: 4px 0px;
+    }
+    QWidget#LiveReadinessController QComboBox,
+    QWidget#LiveReadinessController QLineEdit,
+    QWidget#LiveReadinessController QSpinBox {
+        background-color: #101722;
+        color: #f2f5f8;
+        border: 1px solid rgba(167, 176, 192, 0.35);
+        border-radius: 5px;
+        padding: 5px 8px;
+        selection-background-color: #38f68d;
+    }
+    QWidget#LiveReadinessController QComboBox:focus,
+    QWidget#LiveReadinessController QLineEdit:focus,
+    QWidget#LiveReadinessController QSpinBox:focus {
+        border: 1px solid rgba(56, 246, 141, 0.75);
+    }
+    QWidget#LiveReadinessController QPushButton {
+        background-color: rgba(56, 246, 141, 0.14);
+        color: #f2f5f8;
+        border: 1px solid rgba(56, 246, 141, 0.55);
+        border-radius: 5px;
+        padding: 7px 12px;
+        font-weight: bold;
+    }
+    QWidget#LiveReadinessController QPushButton:hover {
+        background-color: rgba(56, 246, 141, 0.22);
+        border: 1px solid rgba(56, 246, 141, 0.85);
+    }
+    QWidget#LiveReadinessController QPushButton:disabled {
+        background-color: rgba(124, 135, 152, 0.14);
+        color: #7c8798;
+        border: 1px solid rgba(124, 135, 152, 0.2);
+    }
+    QWidget#LiveReadinessController QToolTip {
+        background-color: #101722;
+        color: #f2f5f8;
+        border: 1px solid rgba(56, 246, 141, 0.75);
+        padding: 8px;
+        font-size: 12px;
+        border-radius: 4px;
+    }
+    """
+    window.setStyleSheet(controller_style)
 
     current_session: dict[str, Optional[LiveScreenHudSession]] = {"session": None}
 
