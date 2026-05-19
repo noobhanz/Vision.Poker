@@ -154,6 +154,39 @@ If your recording filename differs, use the exact path from Finder. Passing a
 folder of sparse extracted frames is useful for regression checks, but it will
 not look like continuous play.
 
+### Standalone Live-Readiness App
+
+The closest pre-live test is to open a real screen recording in VLC, QuickTime,
+or another normal player window, then let Vision Poker watch that visible window
+through the same screen-capture path used for live tables:
+
+```bash
+python -m tools.live_screen_hud --controller
+```
+
+This opens a movable Vision Poker controller window. From there:
+
+1. Open your poker recording in VLC or QuickTime.
+2. In the controller, choose the player window or type part of its title.
+3. Press **Start HUD**.
+4. Play, pause, seek, or scrub the recording in the player.
+5. Watch the standalone HUD update from the pixels visible on screen.
+
+This is intentionally more realistic than directly feeding frames to the parser:
+it tests window detection, screen recording permission, screen capture, ROI
+scaling, parser stability, and HUD updates together. Use crop margins if the
+player window includes visible chrome or controls around the poker table.
+
+You can also launch the watcher directly when you know the window title:
+
+```bash
+python -m tools.live_screen_hud \
+  --title "QuickTime Player" \
+  --skin pokerstars_mac_cash \
+  --fps 8 \
+  --always-on-top
+```
+
 Use console mode when you want a deterministic, non-GUI smoke test:
 
 ```bash
