@@ -103,6 +103,30 @@ The repo includes a tiny smoke sequence at
 large enough to cover stable preflop, flop, river/all-in, no-active, and
 board-warning states without committing a full recording.
 
+Replay an extracted sequence or short recording through the actual HUD:
+
+```bash
+python -m tools.replay_hud \
+  --input tests/fixtures/live_sequences/pokerstars_live_smoke \
+  --skin pokerstars_mac_cash \
+  --fps 2
+```
+
+Use console mode when you want a deterministic, non-GUI smoke test:
+
+```bash
+python -m tools.replay_hud \
+  --input tests/fixtures/live_sequences/pokerstars_live_smoke \
+  --skin pokerstars_mac_cash \
+  --fps 2 \
+  --monte-carlo 20 \
+  --no-hud
+```
+
+This mode intentionally bypasses live screen capture. It is the recommended
+step before a real PokerStars smoke test because it exercises the parser,
+stabilizer, metrics, and HUD update path from repeatable recorded pixels.
+
 Bootstrap review-only candidate annotations for unannotated frames the parser can read:
 
 ```bash
