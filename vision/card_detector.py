@@ -46,6 +46,8 @@ class CardDetector:
         confidence_threshold: float = 0.75,
         template_dir: Optional[Path] = None,
         min_card_white_ratio: float = 0.12,
+        min_full_card_margin: float = 0.02,
+        full_card_ambiguity_band: float = 0.03,
     ):
         """
         Initialize card detector.
@@ -55,10 +57,14 @@ class CardDetector:
             confidence_threshold: Minimum confidence for YOLO detections
             template_dir: Directory containing template images for fallback
             min_card_white_ratio: Minimum bright-pixel ratio expected in a fixed card slot
+            min_full_card_margin: Required gap for near-threshold full-card matches
+            full_card_ambiguity_band: Score range above threshold treated as near-threshold
         """
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
         self.min_card_white_ratio = min_card_white_ratio
+        self.min_full_card_margin = min_full_card_margin
+        self.full_card_ambiguity_band = full_card_ambiguity_band
         self.template_dir = template_dir or Path(__file__).parent / "templates"
 
         self._model = None
@@ -276,6 +282,39 @@ class CardDetector:
         _, max_val, _, _ = cv2.minMaxLoc(result)
         return float(max_val)
 
+    def _full_card_scores(self, crop: np.ndarray) -> list[tuple[str, float]]:
+        """Return best full-card template scores sorted best-first."""
+        scores: list[tuple[str, float]] = []
+        for card, templates in self._templates.items():
+            if not templates:
+                continue
+            best = max(self._template_max_score(crop, template) for template in templates)
+            scores.append((card, best))
+        return sorted(scores, key=lambda item: item[1], reverse=True)
+
+    def _full_card_match_status(
+        self,
+        scores: list[tuple[str, float]],
+        threshold: float,
+    ) -> tuple[bool, str]:
+        """Decide whether a fixed-slot full-card match is confident enough."""
+        if not scores:
+            return False, "NO_MATCHES"
+
+        confidence = scores[0][1]
+        if confidence < threshold:
+            return False, "LOW_CONFIDENCE"
+
+        near_threshold = confidence < threshold + self.full_card_ambiguity_band
+        if (
+            near_threshold
+            and len(scores) >= 2
+            and confidence - scores[1][1] < self.min_full_card_margin
+        ):
+            return False, "AMBIGUOUS_MATCH"
+
+        return True, "ACCEPTED"
+
     def _classify_rank_suit_from_crop(
         self,
         crop: np.ndarray,
@@ -468,12 +507,7 @@ class CardDetector:
             result["status"] = "EMPTY_SLOT"
             return result
 
-        scores = []
-        for card, templates in self._templates.items():
-            best = max(self._template_max_score(crop, template) for template in templates)
-            scores.append((card, best))
-
-        scores = sorted(scores, key=lambda item: item[1], reverse=True)
+        scores = self._full_card_scores(crop)
         result["card_candidates"] = [
             {"label": label, "score": round(score, 4)}
             for label, score in scores[:top_n]
@@ -486,10 +520,11 @@ class CardDetector:
             return result
 
         card, confidence = scores[0]
+        accepted, status = self._full_card_match_status(scores, threshold)
         result["accepted_card"] = card
         result["confidence"] = round(confidence, 4)
-        result["accepted"] = confidence >= threshold
-        result["status"] = "ACCEPTED" if confidence >= threshold else "LOW_CONFIDENCE"
+        result["accepted"] = accepted
+        result["status"] = status
         return result
 
     def detect_yolo(
@@ -582,12 +617,36 @@ class CardDetector:
                 return []
             return self.detect_rank_suit_template(frame, roi, threshold=threshold)
 
-        # Crop to ROI if specified
         if roi:
             x, y, w, h = roi
-            frame = frame[y : y + h, x : x + w]
-            if not self._has_card_like_pixels(frame):
+            diagnostic = self.full_card_template_diagnostics(
+                frame,
+                roi,
+                threshold=threshold,
+                top_n=2,
+            )
+            if diagnostic["accepted"]:
+                return [
+                    DetectedCard(
+                        card=diagnostic["accepted_card"],
+                        confidence=float(diagnostic["confidence"]),
+                        bbox=(0, 0, w, h),
+                    )
+                ]
+
+            if diagnostic["status"] in {
+                "EMPTY_SLOT",
+                "INVALID_ROI",
+                "ROI_OUT_OF_BOUNDS",
+                "EMPTY_CROP",
+            }:
                 return []
+
+            return self.detect_rank_suit_template(
+                frame,
+                roi,
+                threshold=min(threshold, 0.70),
+            )
 
         detected = []
 

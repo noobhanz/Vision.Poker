@@ -205,6 +205,33 @@ class TestCardDetectorTemplate:
         assert diagnostic["status"] == "ACCEPTED"
         assert diagnostic["card_candidates"][0]["label"] == "Ah"
 
+    def test_full_card_template_diagnostics_rejects_ambiguous_slot(self, tmp_path):
+        """Near-tied full-card matches should not become confident cards."""
+        card_template = np.zeros((20, 20, 3), dtype=np.uint8)
+        card_template[2:18, 2:18] = 255
+        cv2.imwrite(str(tmp_path / "Ah.png"), card_template)
+        cv2.imwrite(str(tmp_path / "As.png"), card_template)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[10:30, 10:30] = card_template
+
+        detector = CardDetector(
+            template_dir=tmp_path,
+            min_card_white_ratio=0.0,
+            min_full_card_margin=0.1,
+        )
+        diagnostic = detector.full_card_template_diagnostics(
+            frame,
+            (10, 10, 60, 80),
+            threshold=0.99,
+            top_n=3,
+        )
+
+        assert diagnostic["accepted"] is False
+        assert diagnostic["status"] == "AMBIGUOUS_MATCH"
+        assert diagnostic["score_margin"] == 0.0
+        assert detector.detect_template(frame, (10, 10, 60, 80), threshold=0.99) == []
+
     def test_fixed_slot_template_rejects_empty_table_region(self, tmp_path):
         """Fixed-slot template matching should not invent cards on empty felt."""
         card_template = np.full((20, 20, 3), 255, dtype=np.uint8)
