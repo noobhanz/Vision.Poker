@@ -292,6 +292,8 @@ def run_hud(args: argparse.Namespace) -> int:
         )
         table_window.show()
 
+    if args.hud_x is not None and args.hud_y is not None:
+        hud.move(args.hud_x, args.hud_y)
     hud.show()
     hud.set_status("REPLAY")
 
@@ -383,11 +385,7 @@ def run_hud(args: argparse.Namespace) -> int:
                     rect,
                 )
             )
-        should_position_hud = (
-            args.table_overlay_hud
-            or args.follow_table_hud
-            or not state["hud_positioned"]
-        )
+        should_position_hud = args.table_overlay_hud or args.follow_table_hud
         if should_position_hud:
             hud.position_over_window(rect)
             state["hud_positioned"] = True
@@ -443,6 +441,18 @@ def parse_args() -> argparse.Namespace:
         help="Keep the standalone HUD above other windows",
     )
     parser.add_argument(
+        "--hud-x",
+        type=int,
+        default=None,
+        help="Optional initial X position for the standalone HUD window",
+    )
+    parser.add_argument(
+        "--hud-y",
+        type=int,
+        default=None,
+        help="Optional initial Y position for the standalone HUD window",
+    )
+    parser.add_argument(
         "--screen-capture-replay",
         action="store_true",
         help=(
@@ -483,6 +493,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--stable-frames must be greater than 0")
     if args.screen_capture_replay and args.hud_only:
         parser.error("--screen-capture-replay requires the replay table window")
+    if (args.hud_x is None) != (args.hud_y is None):
+        parser.error("--hud-x and --hud-y must be provided together")
     return args
 
 

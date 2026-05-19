@@ -115,12 +115,13 @@ python -m tools.replay_hud \
 
 This opens a replay-table window and loops the sequence with a standalone
 Vision Poker HUD panel beside it. The HUD is a normal movable window; after the
-initial placement the app will not snap it back if you drag it somewhere else.
-Press `Ctrl+C` in the terminal to stop it, or add `--once` to play through a
-sequence one time and exit. Add `--follow-table-hud` if you want the panel to
-keep following the replay/table window, `--hud-always-on-top` if you want it
-kept above other windows, or `--table-overlay-hud` only when you want to inspect
-the older transparent in-table overlay.
+window manager places it, the app will not snap it to the table or move it if
+you drag it somewhere else. Press `Ctrl+C` in the terminal to stop it, or add
+`--once` to play through a sequence one time and exit. Add `--hud-x 40 --hud-y
+40` if you want a specific starting position, `--follow-table-hud` if you want
+the panel to keep following the replay/table window, `--hud-always-on-top` if
+you want it kept above other windows, or `--table-overlay-hud` only when you
+want to inspect the older transparent in-table overlay.
 
 Run the same replay through the normal screen-capture path:
 
