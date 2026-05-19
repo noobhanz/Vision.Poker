@@ -11,7 +11,12 @@ from engine.models import DrawType, Metrics
 class MetricWidget(QWidget):
     """Widget displaying a single metric with label and value."""
 
-    def __init__(self, label: str, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        label: str,
+        parent: Optional[QWidget] = None,
+        tooltip: str = "",
+    ):
         super().__init__(parent)
         self.label_text = label
 
@@ -25,6 +30,11 @@ class MetricWidget(QWidget):
         self.value = QLabel("--")
         self.value.setObjectName("metric_value")
         self.value.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        if tooltip:
+            self.setToolTip(tooltip)
+            self.label.setToolTip(tooltip)
+            self.value.setToolTip(tooltip)
 
         layout.addWidget(self.label)
         layout.addStretch()

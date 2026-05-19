@@ -24,8 +24,8 @@ def _metrics(**overrides):
 def test_call_metric_display_shows_no_call_when_required_equity_is_zero():
     pot_label, req_label, pot_value, req_value = call_metric_display(_metrics())
 
-    assert pot_label == "No call"
-    assert req_label == "No call"
+    assert pot_label == "N/A"
+    assert req_label == "N/A"
     assert pot_value is None
     assert req_value is None
 

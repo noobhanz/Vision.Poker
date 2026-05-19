@@ -44,7 +44,7 @@ def call_metric_display(metrics: Metrics) -> tuple[str, str, Optional[float], Op
     if metrics.action_mode != "decision":
         return "--", "--", None, None
     if metrics.required_equity <= 0:
-        return "No call", "No call", None, None
+        return "N/A", "N/A", None, None
     return "", "", metrics.pot_odds, metrics.required_equity
 
 
@@ -215,10 +215,36 @@ class PokerHUD(QWidget):
         main_layout.addWidget(sep1)
 
         # Main metrics
-        self.equity_widget = MetricWidget("Equity")
-        self.pot_odds_widget = MetricWidget("Pot Odds")
-        self.req_equity_widget = MetricWidget("Required Eq")
-        self.ev_widget = MetricWidget("EV (call)")
+        self.equity_widget = MetricWidget(
+            "Equity",
+            tooltip=(
+                "Estimated chance your hand wins at showdown against the active "
+                "opponents, based on your cards and the visible board."
+            ),
+        )
+        self.pot_odds_widget = MetricWidget(
+            "Pot Odds",
+            tooltip=(
+                "The call price divided by the pot after calling. This only applies "
+                "when you are facing a bet."
+            ),
+        )
+        self.req_equity_widget = MetricWidget(
+            "Required Eq",
+            tooltip=(
+                "Minimum equity needed for a break-even call. If Equity is higher "
+                "than Required Eq, calling is mathematically profitable before "
+                "future-action assumptions."
+            ),
+        )
+        self.ev_widget = MetricWidget(
+            "EV (call)",
+            tooltip=(
+                "Estimated value of calling: equity times the pot after calling, "
+                "minus the call amount. This is only meaningful when there is a "
+                "positive call price."
+            ),
+        )
 
         main_layout.addWidget(self.equity_widget)
         main_layout.addWidget(self.pot_odds_widget)
