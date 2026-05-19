@@ -2,21 +2,21 @@
 
 /* Main container */
 QWidget#PokerHUD {
-    background-color: rgba(13, 17, 23, 0.88);
-    border: 1px solid #30363d;
+    background-color: rgba(5, 8, 14, 0.96);
+    border: 1px solid rgba(0, 200, 83, 0.55);
     border-radius: 8px;
 }
 
 /* Header */
 QLabel#header {
-    color: #00c853;
-    font-size: 14px;
+    color: #36f58b;
+    font-size: 15px;
     font-weight: bold;
     padding: 8px;
 }
 
 QLabel#status_live {
-    color: #00c853;
+    color: #36f58b;
     font-size: 12px;
 }
 
@@ -27,7 +27,7 @@ QLabel#status_warning {
 
 /* Metric labels */
 QLabel#metric_label {
-    color: #8b949e;
+    color: #98a2b3;
     font-size: 12px;
     padding: 4px 8px;
 }
@@ -42,7 +42,7 @@ QLabel#metric_value {
 
 /* Colored values */
 QLabel#value_positive {
-    color: #00c853;
+    color: #36f58b;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
@@ -57,6 +57,13 @@ QLabel#value_negative {
 
 QLabel#value_neutral {
     color: #e8eaed;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: "SF Mono", "Monaco", "Menlo", monospace;
+}
+
+QLabel#value_muted {
+    color: #667085;
     font-size: 14px;
     font-weight: bold;
     font-family: "SF Mono", "Monaco", "Menlo", monospace;
@@ -85,8 +92,8 @@ QLabel#made_hand {
 
 /* Recommendation box */
 QFrame#recommendation_box {
-    background-color: rgba(0, 200, 83, 0.15);
-    border: 1px solid #00c853;
+    background-color: rgba(0, 200, 83, 0.18);
+    border: 1px solid #36f58b;
     border-radius: 4px;
     padding: 8px;
 }
@@ -112,7 +119,7 @@ QLabel#recommendation_text {
 }
 
 QLabel#recommendation_call {
-    color: #00c853;
+    color: #36f58b;
     font-size: 13px;
     font-weight: bold;
 }
@@ -131,7 +138,7 @@ QLabel#recommendation_raise {
 
 /* Footer / confidence */
 QLabel#confidence {
-    color: #8b949e;
+    color: #98a2b3;
     font-size: 11px;
     padding: 4px 8px;
 }
@@ -143,16 +150,17 @@ QLabel#confidence_low {
 }
 
 QLabel#street_label {
-    color: #8b949e;
+    color: #d0d5dd;
     font-size: 11px;
-    background-color: rgba(48, 54, 61, 0.5);
+    background-color: rgba(0, 200, 83, 0.12);
+    border: 1px solid rgba(0, 200, 83, 0.35);
     border-radius: 4px;
     padding: 2px 6px;
 }
 
 /* Separator line */
 QFrame#separator {
-    background-color: #30363d;
+    background-color: rgba(0, 200, 83, 0.22);
     max-height: 1px;
 }
 

@@ -79,6 +79,10 @@ class MetricWidget(QWidget):
 
         self.set_value(text, style)
 
+    def set_unavailable(self, text: str = "--") -> None:
+        """Show that a metric is not applicable for the current decision."""
+        self.set_value(text, "muted")
+
 
 class RecommendationWidget(QFrame):
     """Widget displaying the action recommendation."""

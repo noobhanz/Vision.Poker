@@ -34,6 +34,20 @@ from .widgets import (
 )
 
 
+def call_metric_display(metrics: Metrics) -> tuple[str, str, Optional[float], Optional[float]]:
+    """Return labels and values for call-specific HUD metrics.
+
+    Pot odds and required equity only mean something when the hero has an
+    actual call decision. A check/bet decision has zero call amount, but showing
+    two ``0.0%`` rows reads as broken rather than unavailable.
+    """
+    if metrics.action_mode != "decision":
+        return "--", "--", None, None
+    if metrics.required_equity <= 0:
+        return "No call", "No call", None, None
+    return "", "", metrics.pot_odds, metrics.required_equity
+
+
 class PokerHUD(QWidget):
     """
     Transparent always-on-top overlay HUD for poker metrics.
@@ -47,12 +61,14 @@ class PokerHUD(QWidget):
         hotkey: str = "F9",
         opacity: float = 0.88,
         position: str = "top-right",
+        standalone: bool = False,
     ):
         super().__init__()
 
         self.hotkey = hotkey
         self.base_opacity = opacity
         self.position_preference = position
+        self.standalone = standalone
         self._poker_window_rect: Optional[WindowRect] = None
 
         self._setup_window()
@@ -64,33 +80,40 @@ class PokerHUD(QWidget):
         self.metrics_updated.connect(self._on_metrics_updated)
 
     def _setup_window(self) -> None:
-        """Configure window flags for transparent overlay."""
-        self.setWindowTitle("Vision Poker HUD")
+        """Configure window flags."""
+        self.setWindowTitle("Vision Poker")
         self.setObjectName("PokerHUD")
 
-        # Window flags: frameless, always on top, tool window (no taskbar)
-        flags = (
-            Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool
-        )
+        if self.standalone:
+            # Product/test panel: readable, movable, and separate from the table.
+            flags = Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint
+        else:
+            # Table overlay: frameless, always on top, tool window (no taskbar).
+            flags = (
+                Qt.WindowType.FramelessWindowHint
+                | Qt.WindowType.WindowStaysOnTopHint
+                | Qt.WindowType.Tool
+            )
 
-        # Platform-specific flags
-        if platform.system() == "Darwin":
+        # Platform-specific flags for the transparent overlay variant.
+        if not self.standalone and platform.system() == "Darwin":
             # macOS: Use sheet window type for proper overlay behavior
             flags |= Qt.WindowType.Sheet
-        elif platform.system() == "Windows":
+        elif not self.standalone and platform.system() == "Windows":
             # Windows: Enable click-through
             self._enable_click_through_windows()
 
         self.setWindowFlags(flags)
 
-        # Enable transparency
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setWindowOpacity(self.base_opacity)
+        if self.standalone:
+            self.setWindowOpacity(1.0)
+        else:
+            # Enable transparency for the table overlay variant.
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            self.setWindowOpacity(self.base_opacity)
 
         # Fixed width, height adjusts to content
-        self.setFixedWidth(280)
+        self.setFixedWidth(340 if self.standalone else 280)
 
     def _enable_click_through_windows(self) -> None:
         """Enable click-through on Windows using WS_EX_TRANSPARENT."""
@@ -226,7 +249,10 @@ class PokerHUD(QWidget):
         hud_width = self.width()
         hud_height = self.height()
 
-        if self.position_preference == "top-left":
+        if self.standalone:
+            x = rect.x + rect.width + 16
+            y = rect.y
+        elif self.position_preference == "top-left":
             x = rect.x + margin
             y = rect.y + margin
         elif self.position_preference == "top-right":
@@ -260,10 +286,15 @@ class PokerHUD(QWidget):
         )
 
         # Update pot odds
-        self.pot_odds_widget.set_percentage(metrics.pot_odds)
+        pot_label, req_label, pot_value, req_value = call_metric_display(metrics)
+        if pot_value is None or req_value is None:
+            self.pot_odds_widget.set_unavailable(pot_label)
+            self.req_equity_widget.set_unavailable(req_label)
+        else:
+            self.pot_odds_widget.set_percentage(pot_value)
 
-        # Update required equity
-        self.req_equity_widget.set_percentage(metrics.required_equity)
+            # Update required equity
+            self.req_equity_widget.set_percentage(req_value)
 
         # Update EV
         self.ev_widget.set_currency(metrics.ev_call)
@@ -333,6 +364,7 @@ def create_hud_app(
     hotkey: str = "F9",
     opacity: float = 0.88,
     position: str = "top-right",
+    standalone: bool = False,
 ) -> tuple[QApplication, PokerHUD]:
     """
     Create and return the Qt application and HUD widget.
@@ -341,6 +373,8 @@ def create_hud_app(
         hotkey: Key to toggle visibility
         opacity: Window opacity (0.0-1.0)
         position: Position preference
+        standalone: Whether to use a standalone product panel instead of a
+            transparent table overlay
 
     Returns:
         Tuple of (QApplication, PokerHUD)
@@ -349,5 +383,10 @@ def create_hud_app(
     if app is None:
         app = QApplication(sys.argv)
 
-    hud = PokerHUD(hotkey=hotkey, opacity=opacity, position=position)
+    hud = PokerHUD(
+        hotkey=hotkey,
+        opacity=opacity,
+        position=position,
+        standalone=standalone,
+    )
     return app, hud

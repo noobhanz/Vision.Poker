@@ -112,9 +112,11 @@ python -m tools.replay_hud \
   --fps 2
 ```
 
-This opens a replay-table window and loops the sequence with the transparent
-HUD positioned over it. Press `Ctrl+C` in the terminal to stop it, or add
-`--once` to play through a sequence one time and exit.
+This opens a replay-table window and loops the sequence with a standalone
+Vision Poker HUD panel beside it. Press `Ctrl+C` in the terminal to stop it,
+or add `--once` to play through a sequence one time and exit. Add
+`--table-overlay-hud` only when you want to inspect the older transparent
+in-table overlay.
 
 Run the same replay through the normal screen-capture path:
 
@@ -128,9 +130,9 @@ python -m tools.replay_hud \
 
 This is the closest offline mimic of live use: the tool displays the recorded
 table in a borderless window, captures that visible window from the screen,
-then updates the HUD from the captured pixels. If this cannot find or capture
-the replay window, check macOS Screen Recording permission for the terminal or
-app that launched it.
+then updates the standalone HUD from the captured pixels. If this cannot find
+or capture the replay window, check macOS Screen Recording permission for the
+terminal or app that launched it.
 
 Use console mode when you want a deterministic, non-GUI smoke test:
 

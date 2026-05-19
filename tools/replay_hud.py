@@ -271,6 +271,7 @@ def run_hud(args: argparse.Namespace) -> int:
         hotkey=args.hotkey,
         opacity=args.opacity,
         position=args.position,
+        standalone=not args.table_overlay_hud,
     )
 
     table_window = None
@@ -413,6 +414,11 @@ def parse_args() -> argparse.Namespace:
         "--hud-only",
         action="store_true",
         help="Show only the HUD overlay, without the replay table window",
+    )
+    parser.add_argument(
+        "--table-overlay-hud",
+        action="store_true",
+        help="Place the HUD as a transparent overlay inside the table frame",
     )
     parser.add_argument(
         "--screen-capture-replay",
