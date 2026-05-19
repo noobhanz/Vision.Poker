@@ -336,8 +336,11 @@ class PokerHUD(QWidget):
             # Update required equity
             self.req_equity_widget.set_percentage(req_value)
 
-        # Update EV
-        self.ev_widget.set_currency(metrics.ev_call)
+        # Update EV. Call EV is unavailable when there is no call price.
+        if req_value is None:
+            self.ev_widget.set_unavailable("--")
+        else:
+            self.ev_widget.set_currency(metrics.ev_call)
 
         # Update draw info
         self.draw_widget.set_draw_info(metrics.outs, metrics.draw_type)
@@ -347,7 +350,9 @@ class PokerHUD(QWidget):
 
         # Update recommendation
         reason = ""
-        if metrics.recommendation == "WAIT":
+        if metrics.recommendation == "CHECK OPTION":
+            reason = "(free option)"
+        elif metrics.recommendation == "WAIT":
             if metrics.action_mode == "preselect":
                 reason = "(pre-action controls)"
             else:

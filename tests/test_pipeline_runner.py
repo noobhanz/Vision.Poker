@@ -67,6 +67,30 @@ def test_compute_metrics_is_neutral_for_warning_status():
     assert metrics.ev_call == 0.0
 
 
+def test_compute_metrics_does_not_recommend_raise_without_call_price():
+    runner = PipelineRunner.__new__(PipelineRunner)
+    runner.settings = Settings(monte_carlo_n=10)
+
+    metrics = runner._compute_metrics(
+        GameState(
+            hero_cards=["Ah", "Jc"],
+            board_cards=["Ac", "Ts", "2d"],
+            pot_size=0.20,
+            bet_to_call=0.0,
+            hero_stack=1.94,
+            action_mode="decision",
+            legal_actions=["check", "bet"],
+            action_amounts={"bet": 0.02},
+            confidence=0.94,
+        ),
+        "OK",
+    )
+
+    assert metrics.recommendation == "CHECK OPTION"
+    assert metrics.required_equity == 0.0
+    assert metrics.ev_call == 0.0
+
+
 class StableParser:
     def __init__(self, state):
         self.state = state

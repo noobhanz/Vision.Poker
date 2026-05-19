@@ -151,8 +151,11 @@ class PipelineRunner:
         po = pot_odds(state.pot_size, state.bet_to_call)
         req_eq = required_equity(state.pot_size, state.bet_to_call)
 
-        # Calculate EV
-        ev = ev_call(equity, state.pot_size, state.bet_to_call)
+        has_call_price = state.bet_to_call > 0
+
+        # Calculate EV. Call EV is only meaningful when there is a positive
+        # amount to call; check/bet spots need their own future strategy model.
+        ev = ev_call(equity, state.pot_size, state.bet_to_call) if has_call_price else 0.0
         ev_f = ev_fold()
 
         # Calculate draws
@@ -161,10 +164,12 @@ class PipelineRunner:
         made_hand = made_hand_description(state.hero_cards, state.board_cards)
 
         # Get recommendation only when hero has an actual decision.
-        if state.action_mode == "decision" and parse_status == "OK":
-            rec = recommendation(ev, equity, req_eq)
-        else:
+        if state.action_mode != "decision" or parse_status != "OK":
             rec = "WAIT"
+        elif not has_call_price:
+            rec = "CHECK OPTION" if "check" in state.legal_actions else "WAIT"
+        else:
+            rec = recommendation(ev, equity, req_eq)
 
         return Metrics(
             equity=equity,

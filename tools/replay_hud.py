@@ -18,6 +18,7 @@ import asyncio
 import sys
 import time
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Iterator, Optional
 
@@ -245,7 +246,7 @@ def run_hud(args: argparse.Namespace) -> int:
     """Run replay while updating the real PyQt HUD."""
     from PyQt6.QtCore import Qt, QTimer
     from PyQt6.QtGui import QImage, QPixmap
-    from PyQt6.QtWidgets import QLabel
+    from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout, QWidget
     from capture.screen import ScreenCapture
     from overlay.hud import create_hud_app
 
@@ -276,19 +277,41 @@ def run_hud(args: argparse.Namespace) -> int:
     )
 
     table_window = None
+    table_image = None
+    play_button = None
+    frame_slider = None
+    time_label = None
     if not args.hud_only:
-        table_window = QLabel()
+        table_window = QWidget()
         table_window.setWindowTitle(args.replay_window_title)
-        table_window.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if args.borderless_replay:
             table_window.setWindowFlags(
                 Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint
             )
+        table_layout = QVBoxLayout(table_window)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.setSpacing(0)
+
+        table_image = QLabel()
+        table_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        table_layout.addWidget(table_image)
+
+        controls = QHBoxLayout()
+        controls.setContentsMargins(8, 4, 8, 4)
+        play_button = QPushButton("Pause")
+        frame_slider = QSlider(Qt.Orientation.Horizontal)
+        frame_slider.setRange(0, max(0, len(frames) - 1))
+        time_label = QLabel("0.00s")
+        controls.addWidget(play_button)
+        controls.addWidget(frame_slider, stretch=1)
+        controls.addWidget(time_label)
+        table_layout.addLayout(controls)
+
         table_window.setGeometry(
             args.x,
             args.y,
             frames[0].frame.shape[1],
-            frames[0].frame.shape[0],
+            frames[0].frame.shape[0] + (0 if args.borderless_replay else 34),
         )
         table_window.show()
 
@@ -302,9 +325,15 @@ def run_hud(args: argparse.Namespace) -> int:
         "index": 0,
         "capture_warning_printed": False,
         "hud_positioned": False,
+        "paused": False,
+        "pending_future": None,
+        "pending_generation": 0,
+        "generation": 0,
+        "last_metrics": None,
     }
     timer = QTimer()
     should_loop = args.loop or not args.once
+    executor = ThreadPoolExecutor(max_workers=1)
     screen_capture = (
         ScreenCapture(title_substring=args.replay_window_title, mode="title")
         if args.screen_capture_replay
@@ -312,7 +341,7 @@ def run_hud(args: argparse.Namespace) -> int:
     )
 
     def update_table_window(frame: np.ndarray) -> None:
-        if table_window is None:
+        if table_window is None or table_image is None:
             return
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -324,9 +353,33 @@ def run_hud(args: argparse.Namespace) -> int:
             channels * width,
             QImage.Format.Format_RGB888,
         ).copy()
-        table_window.setPixmap(QPixmap.fromImage(image))
-        table_window.resize(width, height)
-        table_window.move(args.x, args.y)
+        table_image.setPixmap(QPixmap.fromImage(image))
+        if args.borderless_replay:
+            table_window.resize(width, height + 34)
+
+    def set_paused(paused: bool) -> None:
+        state["paused"] = paused
+        if play_button is not None:
+            play_button.setText("Play" if paused else "Pause")
+
+    def seek_to(index: int) -> None:
+        state["index"] = max(0, min(index, len(frames) - 1))
+        state["generation"] += 1
+        runner._stabilizer.reset()
+        replay_frame = frames[state["index"]]
+        update_table_window(replay_frame.frame)
+        if frame_slider is not None:
+            frame_slider.blockSignals(True)
+            frame_slider.setValue(state["index"])
+            frame_slider.blockSignals(False)
+        if time_label is not None:
+            time_label.setText(f"{replay_frame.timestamp_seconds:.2f}s")
+
+    if play_button is not None:
+        play_button.clicked.connect(lambda: set_paused(not state["paused"]))
+    if frame_slider is not None:
+        frame_slider.sliderPressed.connect(lambda: set_paused(True))
+        frame_slider.valueChanged.connect(seek_to)
 
     def read_current_frame_from_screen(
         fallback_frame: np.ndarray,
@@ -362,9 +415,40 @@ def run_hud(args: argparse.Namespace) -> int:
                 state["capture_warning_printed"] = True
             return None, rect
 
-        return captured, rect
+        frame_height, frame_width = fallback_frame.shape[:2]
+        captured = captured[:frame_height, :frame_width]
+        table_rect = WindowRect(
+            x=rect.x,
+            y=rect.y,
+            width=frame_width,
+            height=frame_height,
+            window_id=rect.window_id,
+            title=rect.title,
+        )
+        return captured, table_rect
 
     def tick() -> None:
+        pending = state["pending_future"]
+        if pending is not None and pending.done():
+            pending_generation = state["pending_generation"]
+            try:
+                metrics = pending.result()
+            except Exception as exc:
+                metrics = None
+                if args.debug:
+                    print(f"Replay processing failed: {exc}", file=sys.stderr)
+            state["pending_future"] = None
+            if pending_generation != state["generation"]:
+                metrics = None
+            if metrics is not None:
+                state["last_metrics"] = metrics
+                hud.update_metrics(metrics)
+            elif args.debug and state["index"] < len(frames):
+                print(format_metrics_line(frames[state["index"]], metrics))
+
+        if state["paused"]:
+            return
+
         if state["index"] >= len(frames):
             if should_loop:
                 state["index"] = 0
@@ -376,29 +460,36 @@ def run_hud(args: argparse.Namespace) -> int:
 
         replay_frame = frames[state["index"]]
         update_table_window(replay_frame.frame)
+        if frame_slider is not None:
+            frame_slider.blockSignals(True)
+            frame_slider.setValue(state["index"])
+            frame_slider.blockSignals(False)
+        if time_label is not None:
+            time_label.setText(f"{replay_frame.timestamp_seconds:.2f}s")
         frame, rect = read_current_frame_from_screen(replay_frame.frame)
-        metrics = None
-        if frame is not None:
-            metrics = asyncio.run(
-                runner.process_frame(
-                    frame,
-                    rect,
+        if frame is not None and state["pending_future"] is None:
+            state["pending_generation"] = state["generation"]
+            state["pending_future"] = executor.submit(
+                lambda current_frame=frame.copy(), current_rect=rect: asyncio.run(
+                    runner.process_frame(
+                        current_frame,
+                        current_rect,
+                    )
                 )
             )
         should_position_hud = args.table_overlay_hud or args.follow_table_hud
         if should_position_hud:
             hud.position_over_window(rect)
             state["hud_positioned"] = True
-        if metrics is not None:
-            hud.update_metrics(metrics)
-        elif args.debug:
-            print(format_metrics_line(replay_frame, metrics))
         state["index"] += 1
 
     timer.timeout.connect(tick)
     timer.start(interval_ms)
     tick()
-    return app.exec()
+    try:
+        return app.exec()
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -410,7 +501,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fps", type=float, default=2.0)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--max-frames", type=int, default=None)
-    parser.add_argument("--monte-carlo", "-n", type=int, default=500)
+    parser.add_argument("--monte-carlo", "-n", type=int, default=100)
     parser.add_argument("--stable-frames", type=int, default=2)
     parser.add_argument("--no-hud", action="store_true")
     parser.add_argument("--realtime", action="store_true")
