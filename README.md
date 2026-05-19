@@ -62,7 +62,7 @@ python3 -m pipeline.runner --window "GGPoker"
 # Console mode (no GUI)
 python3 -m pipeline.runner --no-gui
 
-# Replay a saved recording or extracted frame sequence through the HUD
+# Replay a saved recording or extracted frame sequence with the HUD over it
 python3 -m tools.replay_hud --input tests/fixtures/live_sequences/pokerstars_live_smoke --skin pokerstars_mac_cash
 ```
 

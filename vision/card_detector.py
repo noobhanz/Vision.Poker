@@ -62,6 +62,7 @@ class CardDetector:
         self.template_dir = template_dir or Path(__file__).parent / "templates"
 
         self._model = None
+        self._model_load_attempted = False
         self._templates: dict[str, list[np.ndarray]] = {}
         self._rank_templates: dict[str, np.ndarray] = {}
         self._suit_templates: dict[str, np.ndarray] = {}
@@ -69,7 +70,11 @@ class CardDetector:
     @property
     def model(self):
         """Lazy-load the YOLO model."""
-        if self._model is None and self.model_path:
+        if self._model is None and self.model_path and not self._model_load_attempted:
+            self._model_load_attempted = True
+            if not Path(self.model_path).exists():
+                return None
+
             try:
                 from ultralytics import YOLO
 

@@ -241,7 +241,9 @@ def run_console(args: argparse.Namespace) -> int:
 
 def run_hud(args: argparse.Namespace) -> int:
     """Run replay while updating the real PyQt HUD."""
-    from PyQt6.QtCore import QTimer
+    from PyQt6.QtCore import Qt, QTimer
+    from PyQt6.QtGui import QImage, QPixmap
+    from PyQt6.QtWidgets import QLabel
     from overlay.hud import create_hud_app
 
     frames = list(
@@ -267,16 +269,48 @@ def run_hud(args: argparse.Namespace) -> int:
         opacity=args.opacity,
         position=args.position,
     )
+
+    table_window = None
+    if not args.hud_only:
+        table_window = QLabel()
+        table_window.setWindowTitle("Vision Poker Replay Table")
+        table_window.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        table_window.setGeometry(
+            args.x,
+            args.y,
+            frames[0].frame.shape[1],
+            frames[0].frame.shape[0],
+        )
+        table_window.show()
+
     hud.show()
     hud.set_status("REPLAY")
 
     interval_ms = max(1, int(1000 / args.fps / args.speed)) if args.fps > 0 else 1
     state = {"index": 0}
     timer = QTimer()
+    should_loop = args.loop or not args.once
+
+    def update_table_window(frame: np.ndarray) -> None:
+        if table_window is None:
+            return
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        height, width, channels = rgb.shape
+        image = QImage(
+            rgb.data,
+            width,
+            height,
+            channels * width,
+            QImage.Format.Format_RGB888,
+        ).copy()
+        table_window.setPixmap(QPixmap.fromImage(image))
+        table_window.resize(width, height)
+        table_window.move(args.x, args.y)
 
     def tick() -> None:
         if state["index"] >= len(frames):
-            if args.loop:
+            if should_loop:
                 state["index"] = 0
                 runner._stabilizer.reset()
             else:
@@ -290,6 +324,7 @@ def run_hud(args: argparse.Namespace) -> int:
             x=args.x,
             y=args.y,
         )
+        update_table_window(replay_frame.frame)
         metrics = asyncio.run(process_replay_frame(runner, replay_frame, rect))
         hud.position_over_window(rect)
         if metrics is not None:
@@ -317,7 +352,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stable-frames", type=int, default=2)
     parser.add_argument("--no-hud", action="store_true")
     parser.add_argument("--realtime", action="store_true")
-    parser.add_argument("--loop", action="store_true")
+    parser.add_argument("--loop", action="store_true", help="Loop HUD replay")
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Play the HUD replay once and exit instead of looping",
+    )
+    parser.add_argument(
+        "--hud-only",
+        action="store_true",
+        help="Show only the HUD overlay, without the replay table window",
+    )
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--x", type=int, default=80)
     parser.add_argument("--y", type=int, default=80)

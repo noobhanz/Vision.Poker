@@ -112,6 +112,10 @@ python -m tools.replay_hud \
   --fps 2
 ```
 
+This opens a replay-table window and loops the sequence with the transparent
+HUD positioned over it. Press `Ctrl+C` in the terminal to stop it, or add
+`--once` to play through a sequence one time and exit.
+
 Use console mode when you want a deterministic, non-GUI smoke test:
 
 ```bash
