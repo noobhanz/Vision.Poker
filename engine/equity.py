@@ -1,7 +1,7 @@
 """Monte Carlo equity calculation using phevaluator."""
 
+import hashlib
 import random
-from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 # Card utilities
@@ -129,11 +129,12 @@ def _run_simulation(
     board: list[str],
     deck: list[str],
     num_opponents: int,
+    rng: random.Random,
 ) -> float:
     """Run a single Monte Carlo simulation."""
     # Make a copy of deck and shuffle
     remaining = deck.copy()
-    random.shuffle(remaining)
+    rng.shuffle(remaining)
 
     # Deal villain hands
     villain_hands = []
@@ -175,6 +176,7 @@ def calculate_equity(
     board: list[str],
     num_opponents: int = 1,
     n: int = 5000,
+    seed: Optional[int] = None,
 ) -> float:
     """
     Calculate hero's equity using Monte Carlo simulation.
@@ -184,6 +186,7 @@ def calculate_equity(
         board: Community cards, e.g., ["2c", "7h", "Qs"]
         num_opponents: Number of opponents (default 1)
         n: Number of Monte Carlo iterations (default 5000)
+        seed: Optional deterministic seed. If omitted, one is derived from the state.
 
     Returns:
         Equity as a float between 0.0 and 1.0
@@ -208,9 +211,17 @@ def calculate_equity(
     if len(deck) < cards_needed:
         raise ValueError("Not enough cards in deck for simulation")
 
+    if seed is None:
+        seed_key = "|".join(hero + board + [str(num_opponents), str(n)])
+        seed = int.from_bytes(
+            hashlib.blake2b(seed_key.encode("utf-8"), digest_size=8).digest(),
+            "big",
+        )
+    rng = random.Random(seed)
+
     # Run simulations
     total_equity = 0.0
     for _ in range(n):
-        total_equity += _run_simulation(hero, board, deck, num_opponents)
+        total_equity += _run_simulation(hero, board, deck, num_opponents, rng)
 
     return total_equity / n

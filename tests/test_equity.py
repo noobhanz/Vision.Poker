@@ -63,6 +63,23 @@ class TestEquityCalculation:
         # But vs random range it's higher
         assert 0.30 <= equity <= 0.75
 
+    def test_same_state_returns_same_monte_carlo_equity(self):
+        """Repeated HUD updates for the same state should not flicker."""
+        first = calculate_equity(
+            hero=["Ah", "Jc"],
+            board=["Ac", "Ts", "2d"],
+            num_opponents=1,
+            n=500,
+        )
+        second = calculate_equity(
+            hero=["Ah", "Jc"],
+            board=["Ac", "Ts", "2d"],
+            num_opponents=1,
+            n=500,
+        )
+
+        assert second == first
+
     def test_set_vs_top_pair(self):
         """Set vs random → equity ≈ 0.90+ (±0.03)."""
         # Set of 7s on a Q72 board

@@ -40,6 +40,23 @@ QLabel#metric_value {
     padding: 4px 8px;
 }
 
+QLabel#metric_info {
+    color: #36f58b;
+    font-size: 10px;
+    font-weight: bold;
+    border: 1px solid rgba(54, 245, 139, 0.55);
+    border-radius: 7px;
+    padding: 0px;
+}
+
+QToolTip {
+    background-color: #05080e;
+    color: #e8eaed;
+    border: 1px solid #36f58b;
+    padding: 6px;
+    font-size: 12px;
+}
+
 /* Colored values */
 QLabel#value_positive {
     color: #36f58b;

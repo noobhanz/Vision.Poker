@@ -27,6 +27,11 @@ class MetricWidget(QWidget):
         self.label = QLabel(label)
         self.label.setObjectName("metric_label")
 
+        self.info = QLabel("?")
+        self.info.setObjectName("metric_info")
+        self.info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info.setFixedWidth(14)
+
         self.value = QLabel("--")
         self.value.setObjectName("metric_value")
         self.value.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -34,9 +39,11 @@ class MetricWidget(QWidget):
         if tooltip:
             self.setToolTip(tooltip)
             self.label.setToolTip(tooltip)
+            self.info.setToolTip(tooltip)
             self.value.setToolTip(tooltip)
 
         layout.addWidget(self.label)
+        layout.addWidget(self.info)
         layout.addStretch()
         layout.addWidget(self.value)
 
