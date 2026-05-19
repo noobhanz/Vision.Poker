@@ -8,6 +8,7 @@ stabilizer, metrics, and HUD all exercise the same path used by live mode.
 Examples:
     python -m tools.replay_hud --input tests/fixtures/live_sequences/pokerstars_live_smoke
     python -m tools.replay_hud --input recording.mov --fps 2 --no-hud --max-frames 50
+    python -m tools.replay_hud --input recording.mov --screen-capture-replay
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ from pipeline.runner import PipelineRunner
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 VIDEO_EXTENSIONS = {".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm"}
+REPLAY_WINDOW_TITLE = "Vision Poker Replay Table"
 
 
 @dataclass
@@ -244,6 +246,7 @@ def run_hud(args: argparse.Namespace) -> int:
     from PyQt6.QtCore import Qt, QTimer
     from PyQt6.QtGui import QImage, QPixmap
     from PyQt6.QtWidgets import QLabel
+    from capture.screen import ScreenCapture
     from overlay.hud import create_hud_app
 
     frames = list(
@@ -273,8 +276,12 @@ def run_hud(args: argparse.Namespace) -> int:
     table_window = None
     if not args.hud_only:
         table_window = QLabel()
-        table_window.setWindowTitle("Vision Poker Replay Table")
+        table_window.setWindowTitle(args.replay_window_title)
         table_window.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        if args.borderless_replay:
+            table_window.setWindowFlags(
+                Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint
+            )
         table_window.setGeometry(
             args.x,
             args.y,
@@ -287,9 +294,14 @@ def run_hud(args: argparse.Namespace) -> int:
     hud.set_status("REPLAY")
 
     interval_ms = max(1, int(1000 / args.fps / args.speed)) if args.fps > 0 else 1
-    state = {"index": 0}
+    state = {"index": 0, "capture_warning_printed": False}
     timer = QTimer()
     should_loop = args.loop or not args.once
+    screen_capture = (
+        ScreenCapture(title_substring=args.replay_window_title, mode="title")
+        if args.screen_capture_replay
+        else None
+    )
 
     def update_table_window(frame: np.ndarray) -> None:
         if table_window is None:
@@ -308,6 +320,42 @@ def run_hud(args: argparse.Namespace) -> int:
         table_window.resize(width, height)
         table_window.move(args.x, args.y)
 
+    def read_current_frame_from_screen(
+        fallback_frame: np.ndarray,
+    ) -> tuple[Optional[np.ndarray], WindowRect]:
+        direct_rect = replay_rect_for_frame(
+            fallback_frame,
+            x=args.x,
+            y=args.y,
+        )
+        if screen_capture is None:
+            return fallback_frame, direct_rect
+
+        app.processEvents()
+        rect = screen_capture.find_window()
+        if rect is None:
+            if not state["capture_warning_printed"]:
+                print(
+                    "Replay window capture failed: window not found. "
+                    "Check that the replay table window is visible.",
+                    file=sys.stderr,
+                )
+                state["capture_warning_printed"] = True
+            return None, direct_rect
+
+        captured = screen_capture.capture_rect(rect)
+        if captured is None:
+            if not state["capture_warning_printed"]:
+                print(
+                    "Replay window capture failed. Check macOS Screen Recording "
+                    "permission for the terminal or app launching Vision Poker.",
+                    file=sys.stderr,
+                )
+                state["capture_warning_printed"] = True
+            return None, rect
+
+        return captured, rect
+
     def tick() -> None:
         if state["index"] >= len(frames):
             if should_loop:
@@ -319,13 +367,16 @@ def run_hud(args: argparse.Namespace) -> int:
                 return
 
         replay_frame = frames[state["index"]]
-        rect = replay_rect_for_frame(
-            replay_frame.frame,
-            x=args.x,
-            y=args.y,
-        )
         update_table_window(replay_frame.frame)
-        metrics = asyncio.run(process_replay_frame(runner, replay_frame, rect))
+        frame, rect = read_current_frame_from_screen(replay_frame.frame)
+        metrics = None
+        if frame is not None:
+            metrics = asyncio.run(
+                runner.process_frame(
+                    frame,
+                    rect,
+                )
+            )
         hud.position_over_window(rect)
         if metrics is not None:
             hud.update_metrics(metrics)
@@ -363,6 +414,25 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Show only the HUD overlay, without the replay table window",
     )
+    parser.add_argument(
+        "--screen-capture-replay",
+        action="store_true",
+        help=(
+            "Play the replay in a window, then read that visible window through "
+            "the normal screen-capture path before updating the HUD"
+        ),
+    )
+    parser.add_argument(
+        "--replay-window-title",
+        default=REPLAY_WINDOW_TITLE,
+        help="Window title used for replay-window screen capture",
+    )
+    parser.add_argument(
+        "--borderless-replay",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Show the replay table without window chrome so ROIs match PokerStars",
+    )
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--x", type=int, default=80)
     parser.add_argument("--y", type=int, default=80)
@@ -383,6 +453,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--speed must be greater than 0")
     if args.stable_frames <= 0:
         parser.error("--stable-frames must be greater than 0")
+    if args.screen_capture_replay and args.hud_only:
+        parser.error("--screen-capture-replay requires the replay table window")
     return args
 
 

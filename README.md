@@ -64,6 +64,9 @@ python3 -m pipeline.runner --no-gui
 
 # Replay a saved recording or extracted frame sequence with the HUD over it
 python3 -m tools.replay_hud --input tests/fixtures/live_sequences/pokerstars_live_smoke --skin pokerstars_mac_cash
+
+# Live-like replay: capture the visible replay window before updating the HUD
+python3 -m tools.replay_hud --input tests/fixtures/live_sequences/pokerstars_live_smoke --skin pokerstars_mac_cash --screen-capture-replay
 ```
 
 ## Supported Poker Clients
