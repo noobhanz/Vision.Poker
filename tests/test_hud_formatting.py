@@ -1,5 +1,6 @@
 from engine.models import DrawType, Metrics
-from overlay.hud import call_metric_display
+from capture.window_finder import WindowRect
+from overlay.hud import call_metric_display, hud_position_for_rect
 
 
 def _metrics(**overrides):
@@ -53,3 +54,33 @@ def test_call_metric_display_returns_percent_values_for_call_decision():
     assert req_label == ""
     assert pot_value == 0.25
     assert req_value == 0.25
+
+
+def test_standalone_hud_position_stays_visible_when_right_side_is_offscreen():
+    x, y = hud_position_for_rect(
+        WindowRect(x=80, y=40, width=955, height=688),
+        hud_width=340,
+        hud_height=400,
+        standalone=True,
+        position_preference="top-right",
+        screen_width=1280,
+        screen_height=800,
+    )
+
+    assert x == 930
+    assert y == 40
+
+
+def test_standalone_hud_position_clamps_when_no_side_has_room():
+    x, y = hud_position_for_rect(
+        WindowRect(x=0, y=0, width=1200, height=700),
+        hud_width=340,
+        hud_height=400,
+        standalone=True,
+        position_preference="top-right",
+        screen_width=1280,
+        screen_height=800,
+    )
+
+    assert x == 930
+    assert y == 10

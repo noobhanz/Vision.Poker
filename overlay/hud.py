@@ -48,6 +48,45 @@ def call_metric_display(metrics: Metrics) -> tuple[str, str, Optional[float], Op
     return "", "", metrics.pot_odds, metrics.required_equity
 
 
+def hud_position_for_rect(
+    rect: WindowRect,
+    *,
+    hud_width: int,
+    hud_height: int,
+    standalone: bool,
+    position_preference: str,
+    screen_width: int,
+    screen_height: int,
+    margin: int = 10,
+) -> tuple[int, int]:
+    """Return an on-screen HUD position for a table rect."""
+    if standalone:
+        x = rect.x + rect.width + 16
+        y = rect.y
+        if x + hud_width + margin > screen_width:
+            x = rect.x - hud_width - 16
+        if x < margin:
+            x = screen_width - hud_width - margin
+        if x < margin:
+            x = margin
+    elif position_preference == "top-left":
+        x = rect.x + margin
+        y = rect.y + margin
+    elif position_preference == "top-right":
+        x = rect.x + rect.width - hud_width - margin
+        y = rect.y + margin
+    elif position_preference == "bottom-right":
+        x = rect.x + rect.width - hud_width - margin
+        y = rect.y + rect.height - hud_height - margin
+    else:  # bottom-left
+        x = rect.x + margin
+        y = rect.y + rect.height - hud_height - margin
+
+    x = max(margin, min(x, max(margin, screen_width - hud_width - margin)))
+    y = max(margin, min(y, max(margin, screen_height - hud_height - margin)))
+    return x, y
+
+
 class PokerHUD(QWidget):
     """
     Transparent always-on-top overlay HUD for poker metrics.
@@ -245,25 +284,22 @@ class PokerHUD(QWidget):
         """
         self._poker_window_rect = rect
 
-        margin = 10
         hud_width = self.width()
         hud_height = self.height()
+        screen = QApplication.primaryScreen()
+        available = screen.availableGeometry() if screen else None
+        screen_width = available.width() if available else rect.x + rect.width + hud_width
+        screen_height = available.height() if available else rect.y + rect.height + hud_height
 
-        if self.standalone:
-            x = rect.x + rect.width + 16
-            y = rect.y
-        elif self.position_preference == "top-left":
-            x = rect.x + margin
-            y = rect.y + margin
-        elif self.position_preference == "top-right":
-            x = rect.x + rect.width - hud_width - margin
-            y = rect.y + margin
-        elif self.position_preference == "bottom-right":
-            x = rect.x + rect.width - hud_width - margin
-            y = rect.y + rect.height - hud_height - margin
-        else:  # bottom-left
-            x = rect.x + margin
-            y = rect.y + rect.height - hud_height - margin
+        x, y = hud_position_for_rect(
+            rect,
+            hud_width=hud_width,
+            hud_height=hud_height,
+            standalone=self.standalone,
+            position_preference=self.position_preference,
+            screen_width=screen_width,
+            screen_height=screen_height,
+        )
 
         self.move(x, y)
 

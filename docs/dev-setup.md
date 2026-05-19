@@ -101,7 +101,8 @@ python -m tools.live_readiness_gate \
 The repo includes a tiny smoke sequence at
 `tests/fixtures/live_sequences/pokerstars_live_smoke`. It is intentionally only
 large enough to cover stable preflop, flop, river/all-in, no-active, and
-board-warning states without committing a full recording.
+board-warning states without committing a full recording. It is not meant to
+look like smooth playback; it will jump between a few sampled frames.
 
 Replay an extracted sequence or short recording through the actual HUD:
 
@@ -133,6 +134,21 @@ table in a borderless window, captures that visible window from the screen,
 then updates the standalone HUD from the captured pixels. If this cannot find
 or capture the replay window, check macOS Screen Recording permission for the
 terminal or app that launched it.
+
+For an actual screen recording, point `--input` at the `.mov` or `.mp4` file
+and use a higher FPS so playback feels closer to live:
+
+```bash
+python -m tools.replay_hud \
+  --input "/Users/antonhorning/Desktop/PokerStars Screenshots/Live/Screen Recording.mov" \
+  --skin pokerstars_mac_cash \
+  --fps 12 \
+  --screen-capture-replay
+```
+
+If your recording filename differs, use the exact path from Finder. Passing a
+folder of sparse extracted frames is useful for regression checks, but it will
+not look like continuous play.
 
 Use console mode when you want a deterministic, non-GUI smoke test:
 
