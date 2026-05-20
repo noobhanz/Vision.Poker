@@ -38,6 +38,7 @@ class StateParser:
         self.ocr_engine = ocr_engine or OCREngine()
         self.action_reader = ActionReader(self.ocr_engine)
         self._last_parse_error = "OK"
+        self._last_visible_hero_slots = 0
         self._last_visible_board_slots = 0
 
     def _infer_street(self, num_board_cards: int) -> Street:
@@ -199,10 +200,16 @@ class StateParser:
         self._last_parse_error = "OK"
 
         # Detect hero cards
-        hero_detections = self._detect_unique_cards(
-            frame,
-            roi_config.get_hero_card_rois(),
-        )
+        hero_rois = roi_config.get_hero_card_rois()
+        if hasattr(self.card_detector, "has_card_like_pixels"):
+            self._last_visible_hero_slots = sum(
+                1
+                for roi in hero_rois
+                if self.card_detector.has_card_like_pixels(frame, roi.as_tuple())
+            )
+        else:
+            self._last_visible_hero_slots = 0
+        hero_detections = self._detect_unique_cards(frame, hero_rois)
 
         # Detect board cards
         board_rois = roi_config.get_board_card_rois()
@@ -282,7 +289,9 @@ class StateParser:
         if len(hero_cards) < 2:
             if self._last_parse_error == "OK":
                 self._last_parse_error = (
-                    "NO_ACTIVE_HERO_CARDS" if not hero_cards else "INCOMPLETE_HERO_CARDS"
+                    "INCOMPLETE_HERO_CARDS"
+                    if hero_cards or self._last_visible_hero_slots
+                    else "NO_ACTIVE_HERO_CARDS"
                 )
             return None
 

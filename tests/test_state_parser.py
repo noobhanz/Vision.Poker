@@ -92,6 +92,14 @@ class NoHeroCardsDetector:
         return []
 
 
+class VisibleUnreadableHeroDetector:
+    def detect(self, frame, roi):
+        return []
+
+    def has_card_like_pixels(self, frame, roi):
+        return True
+
+
 class PartialBoardDetector:
     def __init__(self):
         self.cards = iter([
@@ -139,6 +147,22 @@ def test_parse_with_fallback_reports_no_active_hero_cards_for_empty_hero_rois():
 
     assert state is None
     assert status == "NO_ACTIVE_HERO_CARDS"
+
+
+def test_parse_with_fallback_reports_incomplete_when_hero_slots_look_occupied():
+    parser = StateParser(VisibleUnreadableHeroDetector(), StubOCREngine())
+    config = ROIConfig(
+        hero_card_1=ROIRegion(0, 0, 10, 10),
+        hero_card_2=ROIRegion(10, 0, 10, 10),
+    )
+
+    state, status = parser.parse_with_fallback(
+        np.zeros((100, 120, 3), dtype=np.uint8),
+        config,
+    )
+
+    assert state is None
+    assert status == "INCOMPLETE_HERO_CARDS"
 
 
 def test_parse_with_fallback_reports_duplicate_cards():

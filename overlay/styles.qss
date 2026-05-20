@@ -66,6 +66,31 @@ QLabel#metric_info {
     padding: 0px;
 }
 
+QWidget#metric_row_positive {
+    background-color: rgba(56, 246, 141, 0.08);
+    border: 1px solid rgba(56, 246, 141, 0.26);
+    border-radius: 5px;
+}
+
+QWidget#metric_row_warning {
+    background-color: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    border-radius: 5px;
+}
+
+QWidget#metric_row_negative {
+    background-color: rgba(255, 95, 95, 0.08);
+    border: 1px solid rgba(255, 95, 95, 0.28);
+    border-radius: 5px;
+}
+
+QWidget#metric_row_neutral,
+QWidget#metric_row_muted {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+}
+
 QToolTip {
     background-color: #101722;
     color: #f2f5f8;

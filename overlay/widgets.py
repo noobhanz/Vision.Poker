@@ -76,9 +76,12 @@ class MetricWidget(QWidget):
             text: Value text to display
             style: One of "neutral", "positive", "negative", "warning"
         """
+        self.setObjectName(f"metric_row_{style}")
         self.value.setText(text)
         self.value.setObjectName(f"value_{style}")
         # Force style update
+        self.style().unpolish(self)
+        self.style().polish(self)
         self.value.style().unpolish(self.value)
         self.value.style().polish(self.value)
 
