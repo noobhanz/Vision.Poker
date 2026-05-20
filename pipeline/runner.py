@@ -125,7 +125,12 @@ class PipelineRunner:
 
     def _compute_metrics(self, state, parse_status: str = "OK") -> Metrics:
         """Compute all metrics from game state."""
-        if parse_status != "OK":
+        blocks_equity = (
+            parse_status == "LOW_CONFIDENCE"
+            or parse_status == "BOARD_CARDS_UNREADABLE"
+            or parse_status.startswith("PARTIAL_BOARD_DETECTED")
+        )
+        if blocks_equity:
             return Metrics(
                 equity=0.0,
                 pot_odds=0.0,
@@ -150,15 +155,29 @@ class PipelineRunner:
             n=self.settings.monte_carlo_n,
         )
 
-        # Calculate pot odds
-        po = pot_odds(state.pot_size, state.bet_to_call)
-        req_eq = required_equity(state.pot_size, state.bet_to_call)
+        has_known_call_price = (
+            parse_status == "OK"
+            and not getattr(state, "action_amount_unknown", False)
+            and state.pot_size > 0
+            and state.bet_to_call > 0
+        )
 
-        has_call_price = state.bet_to_call > 0
+        # Calculate pot odds only when the action amount is known. Equity is
+        # still useful with readable cards even while OCR/action parsing catches up.
+        po = pot_odds(state.pot_size, state.bet_to_call) if has_known_call_price else 0.0
+        req_eq = (
+            required_equity(state.pot_size, state.bet_to_call)
+            if has_known_call_price
+            else 0.0
+        )
 
         # Calculate EV. Call EV is only meaningful when there is a positive
         # amount to call; check/bet spots need their own future strategy model.
-        ev = ev_call(equity, state.pot_size, state.bet_to_call) if has_call_price else 0.0
+        ev = (
+            ev_call(equity, state.pot_size, state.bet_to_call)
+            if has_known_call_price
+            else 0.0
+        )
         ev_f = ev_fold()
 
         # Calculate draws
@@ -169,7 +188,7 @@ class PipelineRunner:
         # Get recommendation only when hero has an actual decision.
         if state.action_mode != "decision" or parse_status != "OK":
             rec = "WAIT"
-        elif not has_call_price:
+        elif state.bet_to_call <= 0:
             rec = "CHECK OPTION" if "check" in state.legal_actions else "WAIT"
         else:
             rec = recommendation(ev, equity, req_eq)
@@ -281,7 +300,11 @@ class PipelineRunner:
                 print(f"Metrics computation failed: {e}")
             return None
 
-        if metrics.parse_status == "OK":
+        if metrics.equity > 0 and not (
+            metrics.parse_status == "LOW_CONFIDENCE"
+            or metrics.parse_status == "BOARD_CARDS_UNREADABLE"
+            or metrics.parse_status.startswith("PARTIAL_BOARD_DETECTED")
+        ):
             self._remember_good_metrics(metrics)
 
         elapsed = time.time() - start_time

@@ -91,6 +91,32 @@ def test_compute_metrics_does_not_recommend_raise_without_call_price():
     assert metrics.ev_call == 0.0
 
 
+def test_compute_metrics_keeps_equity_when_action_amount_is_unknown():
+    runner = PipelineRunner.__new__(PipelineRunner)
+    runner.settings = Settings(monte_carlo_n=10)
+
+    metrics = runner._compute_metrics(
+        GameState(
+            hero_cards=["Qh", "8d"],
+            board_cards=[],
+            pot_size=0.03,
+            bet_to_call=0.0,
+            hero_stack=2.0,
+            action_mode="decision",
+            legal_actions=["fold", "call", "raise"],
+            action_amount_unknown=True,
+            confidence=0.88,
+        ),
+        "ACTION_AMOUNT_UNKNOWN",
+    )
+
+    assert metrics.parse_status == "ACTION_AMOUNT_UNKNOWN"
+    assert metrics.equity > 0
+    assert metrics.required_equity == 0.0
+    assert metrics.ev_call == 0.0
+    assert metrics.recommendation == "WAIT"
+
+
 class StableParser:
     def __init__(self, state):
         self.state = state
