@@ -230,9 +230,7 @@ class PipelineRunner:
             if self.settings.debug_mode:
                 print(f"State parse failed: {status}")
             self._stabilizer.reset()
-            if status == "NO_ACTIVE_HERO_CARDS":
-                return self._idle_metrics(status)
-            return None
+            return self._idle_metrics(status)
 
         stability = self._stabilizer.observe(state, status)
         if not stability.is_stable:
@@ -241,7 +239,7 @@ class PipelineRunner:
                     "Waiting for stable parse "
                     f"({stability.count}/{stability.required}): {status}"
                 )
-            return None
+            return self._idle_metrics("STABILIZING")
 
         # Compute metrics
         try:

@@ -45,7 +45,6 @@ class StateStabilizer:
             tuple(state.board_cards),
             round(float(state.pot_size), 2),
             round(float(state.bet_to_call), 2),
-            round(float(state.hero_stack), 2),
             state.action_mode,
             tuple(state.legal_actions),
             tuple(

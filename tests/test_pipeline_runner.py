@@ -130,7 +130,8 @@ def test_process_frame_waits_for_repeated_active_parse():
     first = asyncio.run(runner.process_frame(frame, rect))
     second = asyncio.run(runner.process_frame(frame, rect))
 
-    assert first is None
+    assert first is not None
+    assert first.parse_status == "STABILIZING"
     assert second is not None
     assert second.parse_status == "OK"
 

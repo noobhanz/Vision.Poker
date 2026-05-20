@@ -35,6 +35,19 @@ def test_stabilizer_resets_count_when_state_changes():
     assert stabilizer.observe(_state(board=["2h", "7d", "Qs"]), "OK").count == 1
 
 
+def test_stabilizer_ignores_stack_jitter_for_live_publish_gate():
+    stabilizer = StateStabilizer(stable_frames_required=2)
+    first = _state()
+    second = _state()
+    second.hero_stack = 1.97
+
+    assert stabilizer.observe(first, "OK").count == 1
+    repeated = stabilizer.observe(second, "OK")
+
+    assert repeated.count == 2
+    assert repeated.is_stable is True
+
+
 def test_stabilizer_reset_clears_pending_state():
     stabilizer = StateStabilizer(stable_frames_required=2)
     stabilizer.observe(_state(), "OK")
