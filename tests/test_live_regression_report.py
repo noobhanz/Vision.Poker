@@ -52,8 +52,7 @@ def test_slot_diagnostics_explain_live_warning_frame():
 
     assert "hero_card_1" in diagnostics
     assert "board_card_1" in diagnostics
-    assert diagnostics["hero_card_1"]["accepted"] is False
-    assert diagnostics["hero_card_1"]["full_card_status"] == "AMBIGUOUS_MATCH"
+    assert diagnostics["hero_card_1"]["accepted"] is True
     assert "full_card_status" in diagnostics["board_card_1"]
     assert "rank_candidates" in diagnostics["board_card_1"]
 
@@ -66,20 +65,21 @@ def test_pokerstars_live_smoke_fixture_summary():
     )
 
     assert summary["frames"]["total"] == 9
-    assert summary["frames"]["active"] == 6
+    assert summary["frames"]["active"] == 8
     assert summary["frames"]["published_ok"] == 3
-    assert summary["frames"]["published_warnings"] == 0
+    assert summary["frames"]["published_warnings"] == 1
     assert summary["frames"]["actionable_published_ok"] == 2
     assert summary["status_counts"] == {
         "OK": 6,
-        "INCOMPLETE_HERO_CARDS": 2,
+        "BOARD_CARDS_UNREADABLE": 2,
         "NO_ACTIVE_HERO_CARDS": 1,
     }
     assert summary["published_status_counts"] == {
         "OK": 3,
+        "BOARD_CARDS_UNREADABLE": 1,
     }
     assert summary["suspicious_published_ok_count"] == 0
-    warning = summary["warning_samples"]["INCOMPLETE_HERO_CARDS"][0]
+    warning = summary["warning_samples"]["BOARD_CARDS_UNREADABLE"][0]
     assert "card_slots" not in warning
 
 
@@ -91,6 +91,6 @@ def test_pokerstars_live_smoke_fixture_can_include_card_diagnostics():
         include_card_diagnostics=True,
     )
 
-    warning = summary["warning_samples"]["INCOMPLETE_HERO_CARDS"][0]
+    warning = summary["warning_samples"]["BOARD_CARDS_UNREADABLE"][0]
     assert "card_slots" in warning
-    assert "hero_card_1" in warning["card_slots"]
+    assert "board_card_1" in warning["card_slots"]

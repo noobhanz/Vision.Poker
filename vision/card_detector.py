@@ -46,7 +46,7 @@ class CardDetector:
         confidence_threshold: float = 0.75,
         template_dir: Optional[Path] = None,
         min_card_white_ratio: float = 0.12,
-        min_full_card_margin: float = 0.02,
+        min_full_card_margin: float = 0.01,
         full_card_ambiguity_band: float = 0.03,
     ):
         """
@@ -718,10 +718,11 @@ class CardDetector:
 
         if roi:
             x, y, w, h = roi
+            fixed_slot_threshold = min(threshold, 0.72)
             diagnostic = self.full_card_template_diagnostics(
                 frame,
                 roi,
-                threshold=threshold,
+                threshold=fixed_slot_threshold,
                 top_n=2,
             )
             if diagnostic["accepted"]:

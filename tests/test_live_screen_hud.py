@@ -2,6 +2,7 @@ import numpy as np
 
 from capture.window_finder import WindowRect
 from tools.live_screen_hud import CropMargins, crop_frame_for_live_read, format_metrics
+from vision.table_locator import normalize_table_frame
 
 
 def test_crop_frame_for_live_read_updates_frame_and_rect():
@@ -40,3 +41,18 @@ def test_crop_frame_for_live_read_clamps_oversized_margins():
 
 def test_format_metrics_waiting_state():
     assert format_metrics(None) == "waiting_for_stability"
+
+
+def test_auto_table_locator_keeps_clean_table_fixture_full_size():
+    import cv2
+
+    frame = cv2.imread("tests/fixtures/sample_frames/pokerstars/pokerstars_large_002.png")
+    assert frame is not None
+
+    rect = WindowRect(x=0, y=0, width=frame.shape[1], height=frame.shape[0])
+    normalized, normalized_rect, detected = normalize_table_frame(frame, rect)
+
+    assert detected is not None
+    assert normalized.shape == frame.shape
+    assert normalized_rect.width == rect.width
+    assert normalized_rect.height == rect.height

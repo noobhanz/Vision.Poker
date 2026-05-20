@@ -20,6 +20,7 @@ import numpy as np
 
 from capture.screen import ScreenCapture
 from capture.window_finder import WindowRect, list_windows
+from vision.table_locator import normalize_table_frame
 
 if TYPE_CHECKING:
     from engine.models import Metrics
@@ -101,7 +102,7 @@ class LiveScreenHudSession:
     ):
         self.args = args
         self.status_callback = status_callback
-        self.runner = build_runner(args)
+        self.runner: Optional["PipelineRunner"] = None
         self.capture = ScreenCapture(title_substring=args.title, mode="title")
         self.crop = CropMargins(
             left=args.crop_left,
@@ -134,6 +135,11 @@ class LiveScreenHudSession:
         if self.args.hud_x is not None and self.args.hud_y is not None:
             self.hud.move(self.args.hud_x, self.args.hud_y)
         self.hud.show()
+        self.hud.set_status("STARTING")
+        self._set_status("Starting HUD...")
+        app.processEvents()
+
+        self.runner = build_runner(self.args)
         self.hud.set_status("WATCHING")
 
         self.timer = QTimer()
@@ -165,6 +171,8 @@ class LiveScreenHudSession:
         if self.state["last_signature"] == signature:
             return
         self.state["last_signature"] = signature
+        if self.runner is None:
+            return
         self.runner._stabilizer.reset()
         self.runner._frame_buffer = None
         self.runner._frame_buffer_signature = None
@@ -194,6 +202,8 @@ class LiveScreenHudSession:
         self._handle_pending_result()
         if self.state["pending_future"] is not None:
             return
+        if self.runner is None:
+            return
 
         rect = self.capture.find_window()
         if rect is None:
@@ -222,6 +232,20 @@ class LiveScreenHudSession:
                 self.hud.set_status("BAD CROP", is_warning=True)
             self._set_status("Bad crop. Reduce crop margins.")
             return
+
+        frame, parser_rect, detected_table = normalize_table_frame(
+            frame,
+            parser_rect,
+            enabled=self.args.auto_locate_table,
+        )
+        if detected_table is not None and self.args.debug:
+            print(
+                "Detected table content: "
+                f"{detected_table.width}x{detected_table.height} "
+                f"at {detected_table.x},{detected_table.y} "
+                f"conf={detected_table.confidence:.2f}",
+                file=sys.stderr,
+            )
 
         signature = (
             parser_rect.window_id,
@@ -578,6 +602,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--crop-top", type=int, default=0)
     parser.add_argument("--crop-right", type=int, default=0)
     parser.add_argument("--crop-bottom", type=int, default=0)
+    parser.add_argument(
+        "--no-auto-locate-table",
+        dest="auto_locate_table",
+        action="store_false",
+        help="Disable automatic PokerStars table-content detection inside the selected window",
+    )
+    parser.set_defaults(auto_locate_table=True)
     parser.add_argument(
         "--controller",
         action="store_true",
