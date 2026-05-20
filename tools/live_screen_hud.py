@@ -197,6 +197,20 @@ class LiveScreenHudSession:
         elif self.args.debug:
             print(format_metrics(metrics))
 
+    def _has_relevant_table_change(self, frame: np.ndarray, rect: WindowRect) -> bool:
+        """Return true when watched poker-table regions changed."""
+        if self.runner is None:
+            return True
+
+        scaled_config = self.runner.roi_config.scale_to_window(rect.width, rect.height)
+        if self.runner._frame_buffer is None:
+            self.runner._init_frame_buffer(scaled_config)
+
+        if self.runner._frame_buffer is None:
+            return True
+
+        return self.runner._frame_buffer.has_changed(frame)
+
     def tick(self) -> None:
         """Capture and process the target window once if the worker is free."""
         self._handle_pending_result()
@@ -254,6 +268,11 @@ class LiveScreenHudSession:
             self.crop,
         )
         self._reset_for_signature(signature)
+
+        if not self._has_relevant_table_change(frame, parser_rect):
+            if self.args.debug:
+                self._set_status("No poker-state change detected.")
+            return
 
         if self.args.follow_window and self.hud is not None:
             self.hud.position_over_window(parser_rect)
@@ -585,7 +604,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skin", "-s", default="pokerstars_mac_cash")
     parser.add_argument("--fps", type=int, default=8)
     parser.add_argument("--monte-carlo", "-n", type=int, default=100)
-    parser.add_argument("--stable-frames", type=int, default=2)
+    parser.add_argument("--stable-frames", type=int, default=1)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--always-on-top", action="store_true")
     parser.add_argument("--follow-window", action="store_true")

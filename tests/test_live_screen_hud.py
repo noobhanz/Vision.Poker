@@ -1,7 +1,14 @@
 import numpy as np
 
 from capture.window_finder import WindowRect
-from tools.live_screen_hud import CropMargins, crop_frame_for_live_read, format_metrics
+from pipeline.runner import PipelineRunner
+from tools.live_screen_hud import (
+    CropMargins,
+    LiveScreenHudSession,
+    crop_frame_for_live_read,
+    format_metrics,
+)
+from vision.roi_config import ROIConfig, ROIRegion
 from vision.table_locator import normalize_table_frame
 
 
@@ -56,3 +63,24 @@ def test_auto_table_locator_keeps_clean_table_fixture_full_size():
     assert normalized.shape == frame.shape
     assert normalized_rect.width == rect.width
     assert normalized_rect.height == rect.height
+
+
+def test_live_session_skips_unchanged_relevant_regions():
+    session = LiveScreenHudSession.__new__(LiveScreenHudSession)
+    runner = PipelineRunner.__new__(PipelineRunner)
+    runner.roi_config = ROIConfig(
+        hero_card_1=ROIRegion(0.0, 0.0, 0.2, 0.2, is_relative=True)
+    )
+    runner._frame_buffer = None
+    session.runner = runner
+
+    rect = WindowRect(x=0, y=0, width=100, height=100, window_id=1, title="PokerStars")
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+    assert session._has_relevant_table_change(frame, rect) is True
+    assert session._has_relevant_table_change(frame, rect) is False
+
+    changed = frame.copy()
+    changed[2:18, 2:8] = 255
+    changed[2:8, 2:18] = 255
+    assert session._has_relevant_table_change(changed, rect) is True

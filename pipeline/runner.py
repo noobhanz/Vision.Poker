@@ -11,6 +11,7 @@ Target latency: <300ms from capture to HUD update.
 """
 
 import asyncio
+from dataclasses import replace
 import sys
 import time
 from pathlib import Path
@@ -84,6 +85,8 @@ class PipelineRunner:
         # State
         self._running = False
         self._last_metrics: Optional[Metrics] = None
+        self._last_good_metrics: Optional[Metrics] = None
+        self._last_good_metrics_at: float = 0.0
         self._stabilizer = StateStabilizer(self.settings.stable_frames_required)
         self._hud = None
 
@@ -205,6 +208,35 @@ class PipelineRunner:
             action_mode="none",
         )
 
+    def _remember_good_metrics(self, metrics: Metrics) -> None:
+        """Keep the last publishable active read for brief live parser gaps."""
+        self._last_good_metrics = metrics
+        self._last_good_metrics_at = time.time()
+
+    def _held_metrics_or_idle(self, parse_status: str) -> Metrics:
+        """Return a held active read when a transient parser gap occurs."""
+        holdable_statuses = {
+            "INCOMPLETE_HERO_CARDS",
+            "BOARD_CARDS_UNREADABLE",
+            "LOW_CONFIDENCE",
+            "STABILIZING",
+        }
+        last_good = getattr(self, "_last_good_metrics", None)
+        last_good_at = getattr(self, "_last_good_metrics_at", 0.0)
+        hold_seconds = float(getattr(self.settings, "live_hold_seconds", 0.0) or 0.0)
+        if (
+            parse_status in holdable_statuses
+            and last_good is not None
+            and time.time() - last_good_at <= hold_seconds
+        ):
+            return replace(
+                last_good,
+                parse_status="HOLDING_LAST_READ",
+                confidence=min(last_good.confidence, 0.69),
+            )
+
+        return self._idle_metrics(parse_status)
+
     async def process_frame(self, frame: np.ndarray, rect: WindowRect) -> Optional[Metrics]:
         """
         Process a single frame through the pipeline.
@@ -230,7 +262,7 @@ class PipelineRunner:
             if self.settings.debug_mode:
                 print(f"State parse failed: {status}")
             self._stabilizer.reset()
-            return self._idle_metrics(status)
+            return self._held_metrics_or_idle(status)
 
         stability = self._stabilizer.observe(state, status)
         if not stability.is_stable:
@@ -239,7 +271,7 @@ class PipelineRunner:
                     "Waiting for stable parse "
                     f"({stability.count}/{stability.required}): {status}"
                 )
-            return self._idle_metrics("STABILIZING")
+            return self._held_metrics_or_idle("STABILIZING")
 
         # Compute metrics
         try:
@@ -248,6 +280,9 @@ class PipelineRunner:
             if self.settings.debug_mode:
                 print(f"Metrics computation failed: {e}")
             return None
+
+        if metrics.parse_status == "OK":
+            self._remember_good_metrics(metrics)
 
         elapsed = time.time() - start_time
         if self.settings.debug_mode:

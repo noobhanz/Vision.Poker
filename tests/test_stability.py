@@ -48,6 +48,19 @@ def test_stabilizer_ignores_stack_jitter_for_live_publish_gate():
     assert repeated.is_stable is True
 
 
+def test_stabilizer_ignores_action_amount_jitter_for_live_publish_gate():
+    stabilizer = StateStabilizer(stable_frames_required=2)
+    first = _state()
+    second = _state()
+    second.action_amounts = {"call": 0.02, "raise": 0.05}
+
+    assert stabilizer.observe(first, "OK").count == 1
+    repeated = stabilizer.observe(second, "OK")
+
+    assert repeated.count == 2
+    assert repeated.is_stable is True
+
+
 def test_stabilizer_reset_clears_pending_state():
     stabilizer = StateStabilizer(stable_frames_required=2)
     stabilizer.observe(_state(), "OK")

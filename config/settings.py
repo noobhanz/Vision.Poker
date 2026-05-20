@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     yolo_model_path: str = "models/cards.pt"  # path to fine-tuned YOLOv8
     confidence_threshold: float = 0.75
     stable_frames_required: int = 2  # repeated active parses before HUD update
+    live_hold_seconds: float = 8.0  # keep last good HUD read through brief parser gaps
     hud_hotkey: str = "F9"
     hud_opacity: float = 0.88
     hud_position: str = "top-right"  # top-left | top-right | bottom-right

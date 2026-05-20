@@ -47,12 +47,6 @@ class StateStabilizer:
             round(float(state.bet_to_call), 2),
             state.action_mode,
             tuple(state.legal_actions),
-            tuple(
-                sorted(
-                    (key, round(float(value), 2))
-                    for key, value in state.action_amounts.items()
-                )
-            ),
             parse_status,
         )
 

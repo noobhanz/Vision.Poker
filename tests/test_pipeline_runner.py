@@ -104,6 +104,11 @@ class EmptyParser:
         return None, "NO_ACTIVE_HERO_CARDS"
 
 
+class IncompleteParser:
+    def parse_with_fallback(self, frame, roi_config, min_confidence=0.6):
+        return None, "INCOMPLETE_HERO_CARDS"
+
+
 def test_process_frame_waits_for_repeated_active_parse():
     runner = PipelineRunner.__new__(PipelineRunner)
     runner.settings = Settings(stable_frames_required=2, monte_carlo_n=10)
@@ -156,3 +161,43 @@ def test_process_frame_emits_idle_without_stability_delay():
     assert metrics is not None
     assert metrics.parse_status == "NO_ACTIVE_HERO_CARDS"
     assert runner._stabilizer.pending_key is None
+
+
+def test_process_frame_holds_last_good_metrics_through_transient_gaps():
+    runner = PipelineRunner.__new__(PipelineRunner)
+    runner.settings = Settings(
+        stable_frames_required=1,
+        monte_carlo_n=10,
+        live_hold_seconds=10.0,
+    )
+    runner.roi_config = ROIConfig()
+    runner._stabilizer = StateStabilizer(runner.settings.stable_frames_required)
+    runner._hud = None
+    runner._last_good_metrics = None
+    runner._last_good_metrics_at = 0.0
+    runner.state_parser = StableParser(
+        GameState(
+            hero_cards=["Ah", "Js"],
+            board_cards=[],
+            pot_size=0.05,
+            bet_to_call=0.02,
+            hero_stack=1.98,
+            action_mode="decision",
+            legal_actions=["fold", "call", "raise"],
+            action_amounts={"call": 0.02, "raise": 0.04},
+            confidence=0.95,
+        )
+    )
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    rect = WindowRect(0, 0, 100, 100, window_id=1)
+    good = asyncio.run(runner.process_frame(frame, rect))
+
+    runner.state_parser = IncompleteParser()
+    held = asyncio.run(runner.process_frame(frame, rect))
+
+    assert good is not None
+    assert good.parse_status == "OK"
+    assert held is not None
+    assert held.parse_status == "HOLDING_LAST_READ"
+    assert held.equity == good.equity
