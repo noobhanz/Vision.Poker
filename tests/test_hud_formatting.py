@@ -1,6 +1,6 @@
 from engine.models import DrawType, Metrics
 from capture.window_finder import WindowRect
-from overlay.hud import call_metric_display, hud_position_for_rect
+from overlay.hud import call_edge_style, call_metric_display, ev_style, hud_position_for_rect
 
 
 def _metrics(**overrides):
@@ -54,6 +54,24 @@ def test_call_metric_display_returns_percent_values_for_call_decision():
     assert req_label == ""
     assert pot_value == 0.25
     assert req_value == 0.25
+
+
+def test_call_edge_style_is_red_when_equity_misses_price():
+    assert call_edge_style(_metrics(equity=0.24, required_equity=0.25)) == "negative"
+
+
+def test_call_edge_style_is_yellow_for_thin_profitable_calls():
+    assert call_edge_style(_metrics(equity=0.28, required_equity=0.25)) == "warning"
+
+
+def test_call_edge_style_is_green_for_clear_profitable_calls():
+    assert call_edge_style(_metrics(equity=0.31, required_equity=0.25)) == "positive"
+
+
+def test_ev_style_uses_negative_thin_positive_and_clear_positive_buckets():
+    assert ev_style(-0.01) == "negative"
+    assert ev_style(0.00) == "warning"
+    assert ev_style(0.02) == "positive"
 
 
 def test_standalone_hud_position_stays_visible_when_right_side_is_offscreen():

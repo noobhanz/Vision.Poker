@@ -82,7 +82,12 @@ class MetricWidget(QWidget):
         self.value.style().unpolish(self.value)
         self.value.style().polish(self.value)
 
-    def set_percentage(self, value: float, threshold: Optional[float] = None) -> None:
+    def set_percentage(
+        self,
+        value: float,
+        threshold: Optional[float] = None,
+        style: Optional[str] = None,
+    ) -> None:
         """
         Set value as percentage with automatic coloring.
 
@@ -92,14 +97,20 @@ class MetricWidget(QWidget):
         """
         text = f"{value * 100:.1f}%"
 
-        if threshold is not None:
-            style = "positive" if value >= threshold else "negative"
-        else:
-            style = "neutral"
+        if style is None:
+            if threshold is not None:
+                style = "positive" if value >= threshold else "negative"
+            else:
+                style = "neutral"
 
         self.set_value(text, style)
 
-    def set_currency(self, value: float, positive_is_good: bool = True) -> None:
+    def set_currency(
+        self,
+        value: float,
+        positive_is_good: bool = True,
+        style: Optional[str] = None,
+    ) -> None:
         """
         Set value as currency with sign and coloring.
 
@@ -110,10 +121,11 @@ class MetricWidget(QWidget):
         sign = "+" if value >= 0 else ""
         text = f"{sign}${value:.2f}"
 
-        if positive_is_good:
-            style = "positive" if value >= 0 else "negative"
-        else:
-            style = "negative" if value >= 0 else "positive"
+        if style is None:
+            if positive_is_good:
+                style = "positive" if value >= 0 else "negative"
+            else:
+                style = "negative" if value >= 0 else "positive"
 
         self.set_value(text, style)
 

@@ -48,6 +48,33 @@ def call_metric_display(metrics: Metrics) -> tuple[str, str, Optional[float], Op
     return "", "", metrics.pot_odds, metrics.required_equity
 
 
+def call_edge_style(metrics: Metrics) -> str:
+    """Return traffic-light style for call-decision metrics.
+
+    The useful signal is not raw equity; it is equity versus the price being
+    offered. A five-point buffer keeps tiny Monte Carlo/vision jitter from
+    making the HUD flash between yellow and green.
+    """
+    if metrics.action_mode != "decision" or metrics.required_equity <= 0:
+        return "neutral"
+
+    edge = metrics.equity - metrics.required_equity
+    if edge < 0:
+        return "negative"
+    if edge < 0.05:
+        return "warning"
+    return "positive"
+
+
+def ev_style(value: float, *, money_epsilon: float = 0.01) -> str:
+    """Return traffic-light style for call EV."""
+    if value < 0:
+        return "negative"
+    if value < money_epsilon:
+        return "warning"
+    return "positive"
+
+
 def hud_position_for_rect(
     rect: WindowRect,
     *,
@@ -363,10 +390,10 @@ class PokerHUD(QWidget):
     @pyqtSlot(Metrics)
     def _on_metrics_updated(self, metrics: Metrics) -> None:
         """Handle metrics update on the main thread."""
+        call_style = call_edge_style(metrics)
+
         # Update equity with comparison to required
-        self.equity_widget.set_percentage(
-            metrics.equity, threshold=metrics.required_equity
-        )
+        self.equity_widget.set_percentage(metrics.equity, style=call_style)
 
         # Update pot odds
         pot_label, req_label, pot_value, req_value = call_metric_display(metrics)
@@ -374,16 +401,16 @@ class PokerHUD(QWidget):
             self.pot_odds_widget.set_unavailable(pot_label)
             self.req_equity_widget.set_unavailable(req_label)
         else:
-            self.pot_odds_widget.set_percentage(pot_value)
+            self.pot_odds_widget.set_percentage(pot_value, style=call_style)
 
             # Update required equity
-            self.req_equity_widget.set_percentage(req_value)
+            self.req_equity_widget.set_percentage(req_value, style=call_style)
 
         # Update EV. Call EV is unavailable when there is no call price.
         if req_value is None:
             self.ev_widget.set_unavailable("--")
         else:
-            self.ev_widget.set_currency(metrics.ev_call)
+            self.ev_widget.set_currency(metrics.ev_call, style=ev_style(metrics.ev_call))
 
         # Update draw info
         self.draw_widget.set_draw_info(metrics.outs, metrics.draw_type)
