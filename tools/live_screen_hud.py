@@ -14,15 +14,16 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
 from capture.screen import ScreenCapture
 from capture.window_finder import WindowRect, list_windows
-from config.settings import Settings
-from engine.models import Metrics
-from pipeline.runner import PipelineRunner
+
+if TYPE_CHECKING:
+    from engine.models import Metrics
+    from pipeline.runner import PipelineRunner
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,9 @@ def crop_frame_for_live_read(
 
 def build_runner(args: argparse.Namespace) -> PipelineRunner:
     """Create a pipeline runner configured for visible-window live testing."""
+    from config.settings import Settings
+    from pipeline.runner import PipelineRunner
+
     settings = Settings(
         poker_client_title=args.title,
         skin_config=args.skin,
@@ -73,7 +77,7 @@ def build_runner(args: argparse.Namespace) -> PipelineRunner:
     return PipelineRunner(settings)
 
 
-def format_metrics(metrics: Optional[Metrics]) -> str:
+def format_metrics(metrics: Optional["Metrics"]) -> str:
     """Return a compact status string for debug output."""
     if metrics is None:
         return "waiting_for_stability"
