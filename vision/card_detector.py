@@ -263,11 +263,86 @@ class CardDetector:
 
         return sorted(scores, key=lambda item: item[1], reverse=True)
 
+    def _prepare_fixed_slot_match(
+        self,
+        image: np.ndarray,
+        template: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Normalize a fixed-slot crop and template to compatible dimensions.
+
+        ROI scaling tells us where the card slot is, not the exact pixel size the
+        template was extracted at. For fixed slots, the crop should be compared
+        as the same card rendered at a different scale, so resize the larger side
+        to the smaller side before template scoring.
+        """
+        import cv2
+
+        prepared_image = image
+        prepared_template = template
+
+        if image.shape[:2] == template.shape[:2]:
+            return prepared_image, prepared_template
+
+        if image.shape[0] >= template.shape[0] and image.shape[1] >= template.shape[1]:
+            prepared_image = cv2.resize(
+                image,
+                (template.shape[1], template.shape[0]),
+                interpolation=cv2.INTER_AREA,
+            )
+        elif template.shape[0] >= image.shape[0] and template.shape[1] >= image.shape[1]:
+            prepared_template = cv2.resize(
+                template,
+                (image.shape[1], image.shape[0]),
+                interpolation=cv2.INTER_AREA,
+            )
+
+        if (
+            prepared_template.shape[0] > prepared_image.shape[0]
+            or prepared_template.shape[1] > prepared_image.shape[1]
+        ):
+            prepared_template = cv2.resize(
+                prepared_template,
+                (prepared_image.shape[1], prepared_image.shape[0]),
+                interpolation=cv2.INTER_AREA,
+            )
+
+        return prepared_image, prepared_template
+
+    def _bright_content_crop(self, image: np.ndarray) -> np.ndarray:
+        """Return the bright card surface inside a fixed slot crop."""
+        import cv2
+
+        if image.size == 0:
+            return image
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        mask = gray > 160
+        coords = np.argwhere(mask)
+        if coords.size == 0:
+            return image
+
+        y0, x0 = coords.min(axis=0)
+        y1, x1 = coords.max(axis=0) + 1
+        pad = 2
+        y0 = max(0, int(y0) - pad)
+        x0 = max(0, int(x0) - pad)
+        y1 = min(image.shape[0], int(y1) + pad)
+        x1 = min(image.shape[1], int(x1) + pad)
+
+        # Avoid turning a mostly full ROI into an almost identical copy while
+        # still clipping table labels or empty slot space below the card.
+        if y1 <= y0 or x1 <= x0:
+            return image
+        return image[y0:y1, x0:x1]
+
     def _template_max_score(self, image: np.ndarray, template: np.ndarray) -> float:
         """Return the best match score for one template against one image."""
         import cv2
 
         if image.size == 0:
+            return 0.0
+        if float(template.std()) < 1.0:
             return 0.0
 
         search_template = template
@@ -280,7 +355,25 @@ class CardDetector:
 
         result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, _ = cv2.minMaxLoc(result)
-        return float(max_val)
+        sliding_score = float(max_val)
+
+        fixed_score = 0.0
+        if image.shape[:2] != template.shape[:2]:
+            image_content = self._bright_content_crop(image)
+            template_content = self._bright_content_crop(template)
+            prepared_image, prepared_template = self._prepare_fixed_slot_match(
+                image_content,
+                template_content,
+            )
+            fixed_result = cv2.matchTemplate(
+                prepared_image,
+                prepared_template,
+                cv2.TM_CCOEFF_NORMED,
+            )
+            _, fixed_val, _, _ = cv2.minMaxLoc(fixed_result)
+            fixed_score = float(fixed_val)
+
+        return max(sliding_score, fixed_score)
 
     def _full_card_scores(self, crop: np.ndarray) -> list[tuple[str, float]]:
         """Return best full-card template scores sorted best-first."""
@@ -304,6 +397,12 @@ class CardDetector:
         confidence = scores[0][1]
         if confidence < threshold:
             return False, "LOW_CONFIDENCE"
+
+        if (
+            len(scores) >= 2
+            and confidence - scores[1][1] < self.min_full_card_margin
+        ):
+            return False, "AMBIGUOUS_MATCH"
 
         near_threshold = confidence < threshold + self.full_card_ambiguity_band
         if (

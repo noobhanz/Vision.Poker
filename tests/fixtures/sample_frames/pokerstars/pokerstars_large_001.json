@@ -1,0 +1,16 @@
+{
+  "hero_cards": [
+    "As",
+    "6s"
+  ],
+  "board_cards": [
+    "2h",
+    "9c",
+    "Kh",
+    "Ts",
+    "5d"
+  ],
+  "pot_size": 0.06,
+  "action_mode": "none",
+  "street": "river"
+}

@@ -205,6 +205,32 @@ class TestCardDetectorTemplate:
         assert diagnostic["status"] == "ACCEPTED"
         assert diagnostic["card_candidates"][0]["label"] == "Ah"
 
+    def test_full_card_template_matching_normalizes_scaled_slots(self, tmp_path):
+        """Fixed-slot card templates should match the same card at larger sizes."""
+        card_template = np.zeros((20, 20, 3), dtype=np.uint8)
+        cv2.line(card_template, (2, 2), (17, 17), (255, 255, 255), 2)
+        cv2.circle(card_template, (14, 6), 3, (255, 255, 255), -1)
+        cv2.imwrite(str(tmp_path / "As.png"), card_template)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        scaled_card = cv2.resize(
+            card_template,
+            (44, 44),
+            interpolation=cv2.INTER_NEAREST,
+        )
+        frame[10:54, 10:54] = scaled_card
+
+        detector = CardDetector(template_dir=tmp_path, min_card_white_ratio=0.0)
+        diagnostic = detector.full_card_template_diagnostics(
+            frame,
+            (10, 10, 60, 80),
+            threshold=0.8,
+            top_n=3,
+        )
+
+        assert diagnostic["accepted"] is True
+        assert diagnostic["accepted_card"] == "As"
+
     def test_full_card_template_diagnostics_rejects_ambiguous_slot(self, tmp_path):
         """Near-tied full-card matches should not become confident cards."""
         card_template = np.zeros((20, 20, 3), dtype=np.uint8)

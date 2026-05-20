@@ -93,14 +93,14 @@ def test_live_smoke_fixture_passes_current_readiness_gate():
     assert gate["passed"] is True
 
 
-def test_live_smoke_fixture_fails_tight_warning_gate():
+def test_live_smoke_fixture_fails_when_required_published_volume_is_too_high():
     report = summarize_live_frames(
         Path("tests/fixtures/live_sequences/pokerstars_live_smoke"),
         stable_frames=2,
         monte_carlo_n=5,
     )
 
-    gate = evaluate_live_readiness(report, max_published_warning_rate=0.0)
+    gate = evaluate_live_readiness(report, min_published_ok=4)
 
     assert gate["passed"] is False
-    assert gate["failures"][0]["check"] == "published_warning_rate"
+    assert gate["failures"][0]["check"] == "published_ok"
