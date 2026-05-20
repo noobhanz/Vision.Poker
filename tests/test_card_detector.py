@@ -258,6 +258,54 @@ class TestCardDetectorTemplate:
         assert diagnostic["score_margin"] == 0.0
         assert detector.detect_template(frame, (10, 10, 60, 80), threshold=0.99) == []
 
+    def test_full_card_template_rejects_low_margin_when_configured(self, tmp_path):
+        """Close full-card scores can be treated as uncertain in live slots."""
+        card_a = np.zeros((20, 20, 3), dtype=np.uint8)
+        cv2.line(card_a, (2, 2), (17, 17), (255, 255, 255), 2)
+
+        cv2.imwrite(str(tmp_path / "8d.png"), card_a)
+        cv2.imwrite(str(tmp_path / "6s.png"), card_a)
+
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[10:30, 10:30] = card_a
+
+        detector = CardDetector(
+            template_dir=tmp_path,
+            min_card_white_ratio=0.0,
+            min_full_card_margin=0.06,
+        )
+        diagnostic = detector.full_card_template_diagnostics(
+            frame,
+            (10, 10, 60, 80),
+            threshold=0.1,
+            top_n=2,
+        )
+
+        assert diagnostic["accepted"] is False
+        assert diagnostic["status"] == "AMBIGUOUS_MATCH"
+
+    def test_normalizes_partial_top_card_surface(self, detector):
+        """Card surface normalization keeps top-only hero cards usable."""
+        frame = np.zeros((90, 80, 3), dtype=np.uint8)
+        frame[:, :] = (20, 80, 30)
+        frame[4:45, 8:72] = 255
+        cv2.putText(
+            frame,
+            "A",
+            (12, 31),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            (0, 0, 0),
+            2,
+        )
+        frame[45:, :] = (20, 20, 20)
+
+        normalized = detector._normalize_card_crop(frame)
+
+        assert normalized.status == "NORMALIZED"
+        assert normalized.bbox[1] <= 6
+        assert normalized.bbox[3] < frame.shape[0]
+
     def test_fixed_slot_template_rejects_empty_table_region(self, tmp_path):
         """Fixed-slot template matching should not invent cards on empty felt."""
         card_template = np.full((20, 20, 3), 255, dtype=np.uint8)

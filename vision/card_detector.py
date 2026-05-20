@@ -35,6 +35,15 @@ class DetectedCard:
         return self.card[1]
 
 
+@dataclass
+class NormalizedCardSlot:
+    """A fixed card slot cropped down to the visible card surface."""
+
+    crop: np.ndarray
+    bbox: tuple[int, int, int, int]
+    status: str
+
+
 class CardDetector:
     """
     Detect playing cards using YOLOv8 with template matching fallback.
@@ -70,8 +79,8 @@ class CardDetector:
         self._model = None
         self._model_load_attempted = False
         self._templates: dict[str, list[np.ndarray]] = {}
-        self._rank_templates: dict[str, np.ndarray] = {}
-        self._suit_templates: dict[str, np.ndarray] = {}
+        self._rank_templates: dict[str, list[np.ndarray]] = {}
+        self._suit_templates: dict[str, list[np.ndarray]] = {}
 
     @property
     def model(self):
@@ -131,7 +140,9 @@ class CardDetector:
                 if template_path.exists():
                     template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
                     if template is not None:
-                        self._rank_templates[rank] = self._preprocess_for_template(template)
+                        self._rank_templates.setdefault(rank, []).append(
+                            self._preprocess_for_template(template)
+                        )
 
         if suit_dir.exists():
             for suit in SUITS:
@@ -139,10 +150,37 @@ class CardDetector:
                 if template_path.exists():
                     template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
                     if template is not None:
-                        self._suit_templates[suit] = self._preprocess_for_template(template)
+                        self._suit_templates.setdefault(suit, []).append(
+                            self._preprocess_for_template(template)
+                        )
+
+        # Full-card variants are still useful as training material for the
+        # scalable rank/suit path. Deriving corner glyph templates from them
+        # gives us multiple sizes and slight rendering variants without making
+        # production depend on exact 52-card full-template coverage.
+        self._load_templates()
+        for card, templates in self._templates.items():
+            if len(card) != 2:
+                continue
+            rank, suit = card[0].upper(), card[1].lower()
+            if rank not in RANKS or suit not in SUITS:
+                continue
+            for template in templates:
+                if float(template.std()) < 2.0:
+                    continue
+                normalized = self._normalize_card_crop(template).crop
+                rank_region, suit_region = self._rank_suit_regions(normalized)
+                if rank_region.size and float(rank_region.std()) >= 2.0:
+                    prepared_rank = self._preprocess_for_template(rank_region)
+                    if float(prepared_rank.std()) >= 2.0:
+                        self._rank_templates.setdefault(rank, []).append(prepared_rank)
+                if suit_region.size and float(suit_region.std()) >= 2.0:
+                    prepared_suit = self._preprocess_for_template(suit_region)
+                    if float(prepared_suit.std()) >= 2.0:
+                        self._suit_templates.setdefault(suit, []).append(prepared_suit)
 
     def _preprocess_for_template(self, image: np.ndarray) -> np.ndarray:
-        """Normalize a crop before template matching."""
+        """Normalize a rank/suit glyph crop before template matching."""
         import cv2
 
         if len(image.shape) == 3:
@@ -150,17 +188,42 @@ class CardDetector:
         else:
             gray = image
 
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
-        gray = cv2.equalizeHist(gray)
+        if gray.size == 0:
+            return gray
 
-        # Preserve rank/suit shapes while reducing background variation.
-        _, thresholded = cv2.threshold(
-            gray,
-            0,
-            255,
-            cv2.THRESH_BINARY | cv2.THRESH_OTSU,
+        # Raw card crops are mostly white with dark/red glyphs. Existing test
+        # templates are often white glyphs on black. Infer polarity and always
+        # normalize to white foreground on black background.
+        foreground = gray > 128 if float(gray.mean()) < 128 else gray < 185
+        coords = np.argwhere(foreground)
+        if coords.size == 0:
+            return np.zeros((32, 28), dtype=np.uint8)
+
+        y0, x0 = coords.min(axis=0)
+        y1, x1 = coords.max(axis=0) + 1
+        pad = 0
+        y0 = max(0, int(y0) - pad)
+        x0 = max(0, int(x0) - pad)
+        y1 = min(gray.shape[0], int(y1) + pad)
+        x1 = min(gray.shape[1], int(x1) + pad)
+        glyph = foreground[y0:y1, x0:x1].astype(np.uint8) * 255
+
+        h, w = glyph.shape[:2]
+        target_w, target_h = 28, 32
+        scale = min(target_w / max(1, w), target_h / max(1, h))
+        resized_w = max(1, int(round(w * scale)))
+        resized_h = max(1, int(round(h * scale)))
+        glyph = cv2.resize(
+            glyph,
+            (resized_w, resized_h),
+            interpolation=cv2.INTER_NEAREST,
         )
-        return thresholded
+
+        canvas = np.zeros((target_h, target_w), dtype=np.uint8)
+        x_off = (target_w - resized_w) // 2
+        y_off = (target_h - resized_h) // 2
+        canvas[y_off : y_off + resized_h, x_off : x_off + resized_w] = glyph
+        return canvas
 
     def _has_card_like_pixels(self, crop: np.ndarray) -> bool:
         """Return whether a fixed slot contains enough bright card surface."""
@@ -188,7 +251,7 @@ class CardDetector:
     def _best_template_match(
         self,
         image: np.ndarray,
-        templates: dict[str, np.ndarray],
+        templates: dict[str, list[np.ndarray]],
     ) -> tuple[Optional[str], float]:
         """Return the best template label and confidence for an image crop."""
         import cv2
@@ -196,29 +259,43 @@ class CardDetector:
         best_label: Optional[str] = None
         best_score = 0.0
 
-        for label, template in templates.items():
-            if image.size == 0:
-                continue
+        if image.size == 0:
+            return best_label, best_score
 
-            search_template = template
-            if (
-                template.shape[0] > image.shape[0]
-                or template.shape[1] > image.shape[1]
-            ):
-                search_template = cv2.resize(
-                    template,
-                    (image.shape[1], image.shape[0]),
-                    interpolation=cv2.INTER_AREA,
-                )
+        for label, label_templates in templates.items():
+            for template in label_templates:
+                search_template = template
+                if (
+                    template.shape[0] > image.shape[0]
+                    or template.shape[1] > image.shape[1]
+                ):
+                    search_template = cv2.resize(
+                        template,
+                        (image.shape[1], image.shape[0]),
+                        interpolation=cv2.INTER_AREA,
+                    )
 
-            result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
-            _, max_val, _, _ = cv2.minMaxLoc(result)
+                result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
+                _, max_val, _, _ = cv2.minMaxLoc(result)
+                score = max(float(max_val), self._binary_glyph_similarity(image, search_template))
 
-            if max_val > best_score:
-                best_label = label
-                best_score = float(max_val)
+                if score > best_score:
+                    best_label = label
+                    best_score = score
 
         return best_label, best_score
+
+    def _binary_glyph_similarity(self, image: np.ndarray, template: np.ndarray) -> float:
+        """Return a Dice-style similarity for normalized binary glyph masks."""
+        if image.shape != template.shape or image.size == 0:
+            return 0.0
+        image_mask = image > 127
+        template_mask = template > 127
+        denom = int(image_mask.sum()) + int(template_mask.sum())
+        if denom == 0:
+            return 0.0
+        overlap = int(np.logical_and(image_mask, template_mask).sum())
+        return (2.0 * overlap) / denom
 
     def _rank_suit_regions(self, crop: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Return the rank and suit subregions from an isolated card crop."""
@@ -233,10 +310,86 @@ class CardDetector:
         ]
         return rank_region, suit_region
 
+    def _normalize_card_crop(self, crop: np.ndarray) -> NormalizedCardSlot:
+        """
+        Find the visible card surface inside a fixed slot crop.
+
+        Fixed ROIs are only an approximate slot. In live capture, the window can
+        resize, the table can shift by a few pixels, and hero cards may be partly
+        covered by the player badge. We normalize by locating the bright card
+        rectangle and cropping to it before rank/suit reading.
+        """
+        import cv2
+
+        if crop.size == 0:
+            return NormalizedCardSlot(crop=crop, bbox=(0, 0, 0, 0), status="EMPTY_CROP")
+
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if len(crop.shape) == 3 else crop
+        _, mask = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+
+        # Close small rank/suit/pip holes so the card face becomes one surface.
+        k = max(3, int(round(min(crop.shape[:2]) * 0.08)))
+        kernel = np.ones((k, k), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        best_box: tuple[int, int, int, int] | None = None
+        best_score = -1.0
+        crop_h, crop_w = crop.shape[:2]
+
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if w < max(8, crop_w * 0.25) or h < max(12, crop_h * 0.25):
+                continue
+
+            area_ratio = (w * h) / float(crop_w * crop_h)
+            aspect = w / float(h)
+            # Fully visible cards are tall, but hero cards are often partly
+            # covered by the seat badge. A top-only card face is wide; keep it
+            # because its rank/suit corner is still the useful signal.
+            if not 0.35 <= aspect <= 3.2:
+                continue
+
+            # Prefer large card-like regions near the top-left of the slot.
+            top_left_penalty = (x / max(1, crop_w)) + (y / max(1, crop_h))
+            score = area_ratio - 0.12 * top_left_penalty
+            if score > best_score:
+                best_box = (x, y, w, h)
+                best_score = score
+
+        if best_box is None:
+            return NormalizedCardSlot(
+                crop=crop,
+                bbox=(0, 0, crop_w, crop_h),
+                status="RAW_SLOT",
+            )
+
+        x, y, w, h = best_box
+        pad = max(1, int(round(min(w, h) * 0.03)))
+        x0 = max(0, x - pad)
+        y0 = max(0, y - pad)
+        x1 = min(crop_w, x + w + pad)
+        y1 = min(crop_h, y + h + pad)
+        normalized = crop[y0:y1, x0:x1]
+
+        if normalized.size == 0:
+            return NormalizedCardSlot(
+                crop=crop,
+                bbox=(0, 0, crop_w, crop_h),
+                status="RAW_SLOT",
+            )
+
+        return NormalizedCardSlot(
+            crop=normalized,
+            bbox=(x0, y0, x1 - x0, y1 - y0),
+            status="NORMALIZED",
+        )
+
     def _template_scores(
         self,
         image: np.ndarray,
-        templates: dict[str, np.ndarray],
+        templates: dict[str, list[np.ndarray]],
     ) -> list[tuple[str, float]]:
         """Return template scores sorted best-first for diagnostic output."""
         import cv2
@@ -245,21 +398,28 @@ class CardDetector:
         if image.size == 0:
             return scores
 
-        for label, template in templates.items():
-            search_template = template
-            if (
-                template.shape[0] > image.shape[0]
-                or template.shape[1] > image.shape[1]
-            ):
-                search_template = cv2.resize(
-                    template,
-                    (image.shape[1], image.shape[0]),
-                    interpolation=cv2.INTER_AREA,
-                )
+        for label, label_templates in templates.items():
+            best = 0.0
+            for template in label_templates:
+                search_template = template
+                if (
+                    template.shape[0] > image.shape[0]
+                    or template.shape[1] > image.shape[1]
+                ):
+                    search_template = cv2.resize(
+                        template,
+                        (image.shape[1], image.shape[0]),
+                        interpolation=cv2.INTER_AREA,
+                    )
 
-            result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
-            _, max_val, _, _ = cv2.minMaxLoc(result)
-            scores.append((label, float(max_val)))
+                result = cv2.matchTemplate(image, search_template, cv2.TM_CCOEFF_NORMED)
+                _, max_val, _, _ = cv2.minMaxLoc(result)
+                score = max(
+                    float(max_val),
+                    self._binary_glyph_similarity(image, search_template),
+                )
+                best = max(best, score)
+            scores.append((label, best))
 
         return sorted(scores, key=lambda item: item[1], reverse=True)
 
@@ -470,10 +630,12 @@ class CardDetector:
         if not self._has_card_like_pixels(crop):
             return []
 
-        detected = self._classify_rank_suit_from_crop(crop, threshold)
+        normalized = self._normalize_card_crop(crop)
+        detected = self._classify_rank_suit_from_crop(normalized.crop, threshold)
         if detected is None:
             return []
 
+        detected.bbox = normalized.bbox
         return [detected]
 
     def rank_suit_diagnostics(
@@ -504,6 +666,7 @@ class CardDetector:
             "suit_candidates": [],
             "rank_margin": None,
             "suit_margin": None,
+            "normalization": None,
             "status": "NO_TEMPLATES",
         }
 
@@ -526,7 +689,18 @@ class CardDetector:
             result["status"] = "EMPTY_SLOT"
             return result
 
-        rank_region, suit_region = self._rank_suit_regions(crop)
+        normalized = self._normalize_card_crop(crop)
+        result["normalization"] = {
+            "status": normalized.status,
+            "bbox": {
+                "x": int(normalized.bbox[0]),
+                "y": int(normalized.bbox[1]),
+                "w": int(normalized.bbox[2]),
+                "h": int(normalized.bbox[3]),
+            },
+        }
+
+        rank_region, suit_region = self._rank_suit_regions(normalized.crop)
         rank_prepared = self._preprocess_for_template(rank_region)
         suit_prepared = self._preprocess_for_template(suit_region)
 
@@ -742,6 +916,9 @@ class CardDetector:
             }:
                 return []
 
+            # Rank/suit recognition is the scalable target path, but today it is
+            # safest as the fallback when full-card evidence is absent or weak.
+            # Diagnostics expose both paths so we can gate the eventual switch.
             return self.detect_rank_suit_template(
                 frame,
                 roi,
